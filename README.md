@@ -52,7 +52,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 75 tests, no network, no keys
+uv run pytest                      # 76 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl

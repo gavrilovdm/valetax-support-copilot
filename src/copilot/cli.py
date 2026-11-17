@@ -14,7 +14,7 @@ from rich.table import Table
 from copilot import audit
 from copilot.config import ROOT, Settings
 from copilot.kb import PAGES, KnowledgeBase, build_kb, fetch_pages
-from copilot.llm import make_llm
+from copilot.llm import LLMError, make_llm
 from copilot.pipeline import Copilot, Ticket
 from copilot.prompt import DEFAULT_VERSION, load_prompt
 from copilot.schema import CopilotResult
@@ -56,8 +56,12 @@ def build_copilot(model: str | None = None, prompt_version: str = DEFAULT_VERSIO
     """Wire the co-pilot from settings, the KB snapshot and a prompt version."""
     settings = Settings.from_env()
     kb = KnowledgeBase.load(KB_DIR / "kb.json")
-    llm = make_llm(settings.backend, model or settings.model,
-                   settings.proxy_base_url, settings.proxy_api_key)
+    try:
+        llm = make_llm(settings.backend, model or settings.model,
+                       settings.proxy_base_url, settings.proxy_api_key)
+    except LLMError as exc:
+        console.print(f"[red]configuration error:[/] {exc}")
+        raise typer.Exit(code=2) from exc
     return Copilot(llm=llm, kb=kb, prompt=load_prompt(kb, prompt_version))
 
 

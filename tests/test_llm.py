@@ -136,3 +136,14 @@ def test_anthropic_refusal_becomes_llm_error() -> None:
     client = SimpleNamespace(beta=SimpleNamespace(messages=messages))
     with pytest.raises(LLMError, match="refusal"):
         AnthropicLLM(client, "claude-opus-5-5").complete("p", "t", {})
+
+
+def test_missing_api_key_fails_at_startup_with_a_clear_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from copilot.llm import make_llm
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    with pytest.raises(LLMError, match="ANTHROPIC_API_KEY is not set"):
+        make_llm("anthropic", "claude-sonnet-5-5")
