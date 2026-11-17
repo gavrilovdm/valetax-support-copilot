@@ -200,8 +200,14 @@ def make_llm(backend: str, model: str, proxy_base_url: str = "", proxy_api_key: 
             raise LLMError("COPILOT_LLM_API_KEY is not set (see .env.example)")
         return ProxyLLM(make_proxy_client(proxy_base_url, proxy_api_key), model, tool_name)
     if backend == "anthropic":
+        import os
+
         import anthropic
 
+        if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+            # Fail at start-up with a clear message, not per ticket with an SDK TypeError.
+            raise LLMError("ANTHROPIC_API_KEY is not set (see .env.example), "
+                           "or use COPILOT_LLM_BACKEND=proxy")
         return AnthropicLLM(anthropic.Anthropic(), model)
     raise LLMError(f"unknown backend {backend!r}: use 'anthropic' or 'proxy'")
 

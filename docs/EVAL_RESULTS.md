@@ -103,8 +103,20 @@ account types in your Member Area" (oos-05). The KB says neither.
 - **Validator removals** (drafts withheld before an agent sees them): mostly prompt-injection
   tickets (by design), one abstain, and one real catch — Haiku stated "credited within 60 minutes"
   while citing a section that does not say it (dep-07). The number check is what stopped it.
-- **Keyword net vs model:** on these 60 tickets the model's own flags already covered every
-  complaint/KYC case; the net is a backstop for days it does not (tested in `test_pipeline.py`).
+- **Keyword net vs model** (Sonnet 5.5, 60 tickets — recall on labelled cases):
+
+  | Flag | Model | Keyword net |
+  |---|---|---|
+  | trading advice | 8/8 | 3/8 |
+  | complaint | 5/5 | 3/5 |
+  | KYC/AML outcome | 5/5 | 4/5 |
+  | injection | 4/4 | 2/4 |
+
+  The model does the real work; paraphrases and non-English requests slip past the patterns.
+  The net is a cheap backstop for a model regression (behaviour tested in `test_pipeline.py`), not
+  a second detector of equal strength — I would not drop the model flag on the strength of it.
+  The net had no false hits; the model's extra flags were defensible (an injection ticket that
+  also asks for a trade; a "frozen without reason" ticket flagged as a complaint too).
 - **Retries:** mean attempts 1.0 — the "text instead of tool call" path was never needed in the
   eval, but it is tested.
 

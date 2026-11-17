@@ -19,7 +19,8 @@ uv run ruff check && uv run mypy          # lint + types
 uv run copilot kb ingest                  # refresh data/kb/kb.json from valetax.com
 uv run copilot triage "text"              # one ticket
 uv run copilot run data/samples/tickets.jsonl
-uv run copilot eval --model claude-sonnet-5-5 --split test
+uv run copilot eval --model claude-sonnet-5-5 --split test   # live; writes reports/eval-*
+uv run copilot eval-report                # re-score stored runs with current labels
 uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 ```
 
@@ -35,8 +36,10 @@ uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 
 - The model proposes, code disposes: routing, validation and hard rules are deterministic code with tests.
 - LLM output is parsed into `TriageResult` at the boundary; nothing downstream reads raw JSON.
-- Tests never call an LLM: fakes via `httpx.MockTransport` or the `FakeLLM` in `tests/conftest.py`.
+- Tests never call an LLM: fakes via `httpx.MockTransport` or the `FakeLLM` in `tests/test_pipeline.py`.
 - Proxy backend: no `system` role reaches the model and no prompt caching; Opus/Sonnet 5.5 may answer
   with text instead of the tool call, so the client retries with the error fed back.
 - Every decision that someone may ask "why?" about gets an ADR in `docs/decisions/`.
+- Prompts are versioned files; a new version is tuned on the dev split only, then frozen and run
+  once on test. Label changes carry a `label_fix` field and are explained in EVAL_RESULTS.md.
 - Never commit `.env`, proxy keys (`cpx_…`) or API keys.

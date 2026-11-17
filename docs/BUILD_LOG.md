@@ -80,3 +80,11 @@ what went wrong. Each step is a branch and a PR with CI.
   (cost table computed from measured tokens), KB ownership and conflict detection, webhook →
   queue → worker, feedback loop from agent edits. I did not add a retrieval interface in code:
   with one implementation it would be ceremony; the seam (`KnowledgeBase.render/get`) exists.
+
+## 6. Decisions, README (PR #7)
+
+- 17 ADRs (one per spec decision D1–D17) with options, consequences and the evidence that
+  backs each one — test names or eval numbers, not opinions.
+- Measured the keyword net on its own while writing ADR-006 and found it far weaker than the
+  model (advice 3/8 vs 8/8). The docstring had claimed it was "measured separately"; corrected to
+  what the numbers say: a backstop for a model regression, not an equal second detector.
