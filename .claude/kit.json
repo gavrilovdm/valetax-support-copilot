@@ -1,0 +1,19 @@
+{
+  "modules": {
+    "docs-check": {
+      "extensions": [
+        ".py"
+      ],
+      "paths": [],
+      "exclude": [
+        "tests",
+        "migrations",
+        "versions",
+        "scripts",
+        ".claude"
+      ],
+      "command": "uvx ruff check --isolated --select D100,D101,D102,D103 --output-format concise {file}"
+    },
+    "git-flow": {}
+  }
+}
