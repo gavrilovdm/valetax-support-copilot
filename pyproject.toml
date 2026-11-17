@@ -1,0 +1,54 @@
+[project]
+name = "valetax-support-copilot"
+version = "0.1.0"
+description = "Support-ticket co-pilot for a retail forex/CFD broker: classify, draft grounded replies or abstain, route to humans."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.70",
+    "httpx>=0.27",
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "rich>=13.9",
+    "typer>=0.13",
+]
+
+[project.scripts]
+copilot = "copilot.cli:app"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "types-pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/copilot"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "D100", "D101", "D102", "D103"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.mypy]
+strict = true
+packages = ["copilot"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["copilot.cli"]
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
