@@ -20,3 +20,16 @@ what went wrong. Each step is a branch and a PR with CI.
   section per Q+A with both pages listed. 24 sections in total.
 - Live fetch and offline rebuild give the same `kb_version` → ingest is idempotent; a test pins the
   committed snapshot to the raw HTML.
+
+## 2. Deterministic core (PR #3)
+
+- Wrote the rules the model must not be trusted with as plain functions, tests first:
+  `pii` (redact before the LLM, masked restore), `guardrails` (keyword net + advice filter),
+  `validate` (verbatim citations, number grounding), `route` (rule table).
+- Bug caught by a test: the phone regex also redacted a 16-digit transaction id. Fix: a phone needs
+  `+` or grouping and at most 15 digits (E.164). The agent needs transaction ids.
+- Design choice surfaced while writing tests: Arabic drafts use Arabic-Indic digits (`٢٤`), which a
+  naive `\d` check passes through only partially. All Unicode digits are normalised before the
+  number check, otherwise "invented timeline" detection would be blind in Arabic.
+- Cards and IBANs are stored only masked (`•••• 1111`) in the placeholder map, so the full number
+  never reaches the model, the draft or the audit log.
