@@ -187,5 +187,19 @@ def eval_report(
         out += [f"| {r} | " + " | ".join(str(summaries[m][r]) for m in models) + " |"
                 for r in rows]
         out.append("")
+        (ROOT / "reports" / f"summary-{split}.json").write_text(json.dumps(
+            {m: {k: str(v) if hasattr(v, "interval") else v for k, v in s.items()}
+             for m, s in summaries.items()}, indent=2) + "\n", encoding="utf-8")
     (ROOT / "reports" / "summary.md").write_text("\n".join(out), encoding="utf-8")
     console.print("\n".join(out))
+
+
+@app.command("business-case")
+def business_case_cmd() -> None:
+    """Rebuild docs/BUSINESS_CASE.md from business_case.yaml and reports/summary-all.json."""
+    from copilot.business_case import load_config, load_summaries, render
+
+    cfg = load_config(ROOT / "business_case.yaml")
+    page = render(cfg, load_summaries(ROOT, cfg["configs"]))
+    (ROOT / "docs" / "BUSINESS_CASE.md").write_text(page, encoding="utf-8")
+    console.print(page)

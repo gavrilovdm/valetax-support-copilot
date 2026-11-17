@@ -66,3 +66,17 @@ what went wrong. Each step is a branch and a PR with CI.
 - Froze v2, ran test once per model, then dev for Opus/Haiku for the 60-ticket comparison.
 - Spot-checked the judge by hand: it misses business rules it was not told (KB gaps G1, G4).
   Logged as the next iteration rather than tuned against the test set.
+
+## 5. Business case and Phase 2 (PR #6)
+
+- The page is generated (`copilot business-case`) from `business_case.yaml` + the eval summaries,
+  so replacing an assumption with Valetax's real AHT or agent cost is a one-line edit.
+- Caught in review of my own output: the first draft of the page claimed tokens are "under 3%"
+  of value — true for Sonnet, false for Opus (4.9%). The sentence is now computed.
+- Main finding: tokens are ≤5% of value for every model; the fixed upkeep (~0.2 FTE) is the real
+  cost and stays flat with volume, so value scales with tickets. Only the "both assumptions
+  halved" corner is negative — that is what shadow mode must rule out first.
+- Phase 2 is written as triggers, not a roadmap: retrieval when the KB passes ~30–50K tokens
+  (cost table computed from measured tokens), KB ownership and conflict detection, webhook →
+  queue → worker, feedback loop from agent edits. I did not add a retrieval interface in code:
+  with one implementation it would be ceremony; the seam (`KnowledgeBase.render/get`) exists.
