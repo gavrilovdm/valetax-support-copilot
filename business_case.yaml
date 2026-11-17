@@ -1,0 +1,39 @@
+# Inputs of docs/BUSINESS_CASE.md. Edit and run `uv run copilot business-case`.
+# Every value is either measured (source: eval) or an assumption to be replaced with Valetax data
+# during shadow mode. Assumptions are deliberately middle-of-the-road; the sensitivity table
+# shows what happens if they are off by ±50%.
+
+volume:
+  tickets_per_month: 10000          # brief
+  share_in_kb_scope: 0.60           # assumption: share about deposit/withdrawal/opening/verification
+                                    # that the KB can at least partly answer
+
+agents:
+  cost_per_hour_usd: 10             # assumption: fully loaded L1 agent, offshore / MENA team
+  aht_minutes_baseline: 6.0         # assumption: read, look up, write, route — per ticket today
+  triage_minutes_saved: 0.5         # assumption: classification + routing done for every ticket
+  aht_minutes_draft_accepted: 2.0   # review and send a correct draft
+  aht_minutes_draft_edited: 4.0     # fix and send
+  minutes_overhead_draft_discarded: 0.5   # read a useless draft, then work as before
+
+drafts:                             # what agents do with drafts; to be measured in shadow mode
+  default:  {accepted: 0.50, edited: 0.35, discarded: 0.15}
+  # Haiku: lower judge completeness (4.41 vs 4.70) and 2/49 drafts with unsupported claims in
+  # the eval → assume more edits and discards
+  claude-haiku-5-5: {accepted: 0.40, edited: 0.35, discarded: 0.25}
+
+llm:
+  cache_hit_rate: 0.80              # assumption: ~14 tickets/hour keeps the 5-min cache mostly warm
+                                    # in working hours, cold at night
+
+running_costs_usd_per_month:
+  infrastructure: 50                # one small container, logs, audit storage
+  maintenance: 1000                 # assumption: ~0.2 FTE engineer for KB/SOP updates, evals, monitoring
+
+build:
+  phase1_one_off_usd: 6000          # assumption: ~2 engineer-weeks to production incl. integration
+
+configs:                            # candidates; quality and token cost come from the eval reports
+  - claude-opus-5-5
+  - claude-sonnet-5-5
+  - claude-haiku-5-5
