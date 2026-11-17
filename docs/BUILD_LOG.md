@@ -51,3 +51,18 @@ what went wrong. Each step is a branch and a PR with CI.
   test uses the exact live draft. Also deduplicated route reasons.
 - Observed: ~4.7K input tokens per ticket through the proxy (prefix ≈ 4.3K incl. proxy overhead),
   ~500–700 output tokens, 3–5 s latency on Sonnet 5.5.
+
+## 4. Evals (PR #5)
+
+- 60 hand-labelled tickets, dev 40 / test 20 stratified. Labels encode what a careful senior
+  agent expects; ambiguous ones accept two answers instead of forcing a coin flip.
+- Harness: deterministic checks + Wilson intervals + Opus 5.5 judge on surviving drafts; per-case
+  JSONL for error analysis; `eval-report` re-scores stored runs against current labels, so label
+  fixes never require paying for a re-run.
+- Loop on dev with Sonnet only: v1 → read every failure → most "model errors" were either a
+  prompt gap (what counts as a KYC ruling; "your complaint has been registered") or **my own
+  inconsistent urgency labels**. Wrote the urgency definition once, applied it to prompt and
+  labels, and applied it to the test labels before running test. v2: 0 violations on dev.
+- Froze v2, ran test once per model, then dev for Opus/Haiku for the 60-ticket comparison.
+- Spot-checked the judge by hand: it misses business rules it was not told (KB gaps G1, G4).
+  Logged as the next iteration rather than tuned against the test set.

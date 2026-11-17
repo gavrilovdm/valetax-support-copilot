@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 import httpx
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from copilot.schema import TriageResult, Usage
 
@@ -58,7 +58,7 @@ class StructuredLLM(Protocol):
         ...
 
 
-def strict_schema(model: type[TriageResult]) -> dict[str, Any]:
+def strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     """JSON schema accepted by structured outputs and strict tools.
 
     Inlines `$ref`s, drops keywords those features reject (`pattern`, `default`, `title`), and
@@ -129,10 +129,11 @@ class ProxyLLM:
 
     backend = "proxy"
 
-    def __init__(self, client: httpx.Client, model: str) -> None:
+    def __init__(self, client: httpx.Client, model: str, tool_name: str = TOOL_NAME) -> None:
         """Take a configured HTTP client (tests pass one with a MockTransport)."""
         self._client = client
         self.model = model
+        self._tool = tool_name
 
     def complete(self, prefix: str, ticket_block: str, schema: dict[str, Any]) -> LLMReply:
         """One request; the answer is the arguments of the `submit_triage` tool call."""
@@ -143,10 +144,10 @@ class ProxyLLM:
             "messages": [{"role": "user", "content": f"{prefix}\n\n{ticket_block}"}],
             "tools": [{
                 "type": "function",
-                "function": {"name": TOOL_NAME, "description": "Submit the triage result.",
+                "function": {"name": self._tool, "description": "Submit the answer.",
                              "parameters": schema},
             }],
-            "tool_choice": {"type": "function", "function": {"name": TOOL_NAME}},
+            "tool_choice": {"type": "function", "function": {"name": self._tool}},
         }
         payload = self._post(body)
         message = (payload.get("choices") or [{}])[0].get("message") or {}
@@ -191,13 +192,13 @@ def make_proxy_client(base_url: str, api_key: str, timeout: float = 120.0) -> ht
     )
 
 
-def make_llm(backend: str, model: str, proxy_base_url: str = "", proxy_api_key: str = ""
-             ) -> StructuredLLM:
+def make_llm(backend: str, model: str, proxy_base_url: str = "", proxy_api_key: str = "",
+             tool_name: str = TOOL_NAME) -> StructuredLLM:
     """Build the configured backend."""
     if backend == "proxy":
         if not proxy_api_key:
             raise LLMError("COPILOT_LLM_API_KEY is not set (see .env.example)")
-        return ProxyLLM(make_proxy_client(proxy_base_url, proxy_api_key), model)
+        return ProxyLLM(make_proxy_client(proxy_base_url, proxy_api_key), model, tool_name)
     if backend == "anthropic":
         import anthropic
 
