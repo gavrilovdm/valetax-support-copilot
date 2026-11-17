@@ -47,3 +47,14 @@ def test_output_filter_blocks_recommendations() -> None:
 def test_output_filter_allows_documented_facts_and_declines() -> None:
     assert not advice_hits("Leverage of up to 1:2000 is available depending on the account type.")
     assert not advice_hits("We are not able to give trading advice or recommendations.")
+
+
+def test_decline_that_repeats_the_request_is_not_advice() -> None:
+    # Regression: first live run removed this decline (sample s3).
+    draft = ("Thank you for your message. We're unable to give trading advice, so we can't say "
+             "whether you should buy gold or recommend a leverage setting for you.")
+    assert advice_hits(draft) == []
+
+
+def test_negation_in_another_sentence_does_not_hide_advice() -> None:
+    assert advice_hits("We can't promise anything. But you should buy gold now.")
