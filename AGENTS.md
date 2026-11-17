@@ -36,7 +36,7 @@ uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 
 - The model proposes, code disposes: routing, validation and hard rules are deterministic code with tests.
 - LLM output is parsed into `TriageResult` at the boundary; nothing downstream reads raw JSON.
-- Tests never call an LLM: fakes via `httpx.MockTransport` or the `FakeLLM` in `tests/conftest.py`.
+- Tests never call an LLM: fakes via `httpx.MockTransport` or the `FakeLLM` in `tests/test_pipeline.py`.
 - Proxy backend: no `system` role reaches the model and no prompt caching; Opus/Sonnet 5.5 may answer
   with text instead of the tool call, so the client retries with the error fed back.
 - Every decision that someone may ask "why?" about gets an ADR in `docs/decisions/`.
