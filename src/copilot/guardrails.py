@@ -2,7 +2,7 @@
 
 These do not replace the model's judgement; they back it up. The model flags hard-rule cases in
 any language and phrasing; these patterns catch the blunt cases the model might miss on a bad
-day, and are measured separately in the eval (docs/decisions/ADR-006-hard-rules-in-layers.md).
+day. Measured against the model in docs/EVAL_RESULTS.md: the net is a backstop, far weaker.
 
 The input net is tuned to over-trigger: a false hit costs a human look at a ticket, a miss can cost
 a regulatory breach. The output filter is narrower: it looks for recommendation language, because
