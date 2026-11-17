@@ -1,0 +1,230 @@
+{
+  "version": "b7ada23840fe",
+  "sections": [
+    {
+      "id": "deposit.intro",
+      "kind": "intro",
+      "title": "How to Deposit",
+      "text": "Valetax offers a range of instant, simple and secure funding methods catering to your requirements and preferences",
+      "pages": [
+        "deposit"
+      ]
+    },
+    {
+      "id": "deposit.steps",
+      "kind": "steps",
+      "title": "How to Deposit: steps",
+      "text": "Step 1: Log in to your Member Area\nStep 2: Select your preferred payment channel Click on the Deposit button and select your preferred payment channel\nStep 3: Enter your account details and amount to deposit\nStep 4: Start Trading!",
+      "pages": [
+        "deposit"
+      ]
+    },
+    {
+      "id": "faq.what-is-the-minimum-deposit-amount",
+      "kind": "faq",
+      "title": "What is the minimum deposit amount?",
+      "text": "The minimum deposit starts from 8 USD, depending on the account type.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.how-can-i-deposit-funds-into-my-account",
+      "kind": "faq",
+      "title": "How can I deposit funds into my account?",
+      "text": "You may log in to your member area and select the preferred payment option and deposit size.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.what-currencies-can-i-use-to-deposit-funds",
+      "kind": "faq",
+      "title": "What currencies can I use to deposit funds?",
+      "text": "You may deposit using any preferred currency into our USD account, which will follow that day’s exchange rates.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.how-long-does-it-take-for-deposited-funds-to-be-credited-to-my-balance",
+      "kind": "faq",
+      "title": "How long does it take for deposited funds to be credited to my balance?",
+      "text": "Deposits are instant! You will be able to view your updated account balance within 60 minutes.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.when-will-my-funds-be-available-for-trading",
+      "kind": "faq",
+      "title": "When will my funds be available for trading?",
+      "text": "You can begin trading immediately once your balance has been updated.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.where-can-i-view-my-deposit-and-withdrawal-history",
+      "kind": "faq",
+      "title": "Where can I view my deposit and withdrawal history?",
+      "text": "You may log in to your member area to view all transactions related to deposits, withdrawals and transfers.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.what-is-my-withdrawal-request-status-pending",
+      "kind": "faq",
+      "title": "What is my withdrawal request status ‘pending’?",
+      "text": "This means your request in in queue and in the midst of getting processed. Once approved, you will be notified.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.why-was-my-withdrawal-request-rejected",
+      "kind": "faq",
+      "title": "Why was my withdrawal request rejected?",
+      "text": "It could be that your account has not been verified, a possible error to data entered or insifficient margin to process withdrawals. We will notify you via email on the rejection reason to help fix this issue.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "faq.i-have-not-received-my-funds-after-my-withdrawal-request-what-should-i-do",
+      "kind": "faq",
+      "title": "I have not received my funds after my withdrawal request. What should I do?",
+      "text": "Should you not receive your funds within 24 hours, please reach out to our friendly support team for assistance.",
+      "pages": [
+        "deposit",
+        "withdraw"
+      ]
+    },
+    {
+      "id": "withdraw.intro",
+      "kind": "intro",
+      "title": "How to Withdraw",
+      "text": "We’ve made fund withdrawals easy and instant, providing you with the ultimate convenience and assurance you deserve",
+      "pages": [
+        "withdraw"
+      ]
+    },
+    {
+      "id": "withdraw.steps",
+      "kind": "steps",
+      "title": "How to Withdraw: steps",
+      "text": "Step 1: Log in to your Member Area\nStep 2: Select your preferred payment channel\nStep 3: Enter your account details and amount to deposit\nStep 4: Start Trading!",
+      "pages": [
+        "withdraw"
+      ]
+    },
+    {
+      "id": "open-account.intro",
+      "kind": "intro",
+      "title": "How to Open an Account",
+      "text": "Discover a seamless trading experience with us. Open your account with us in 3 quick and simple steps",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "open-account.steps",
+      "kind": "steps",
+      "title": "How to Open an Account: steps",
+      "text": "Step 1: Visit www.valetax.com and click on ‘ Create Account ‘ at the top right of the page\nStep 2: Enter your details in the required fields and proceed to create your account\nStep 3: Upon successful registration, you will be provided access to your own Member Area\nStep 4: Once completed, you’re ready to make your first deposit . Visit How to Deposit for a quick guide to start trading with us!",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.how-do-i-sign-up-for-an-account",
+      "kind": "faq",
+      "title": "How do I sign up for an account?",
+      "text": "Click here follow the step-by-step instructions to verify and fund your account to start trading. Opening a live account allows you to begin trading immediately. We recommend clients to read through our Risk Disclosures, Privacy Policy and Terms of Business before they start trading.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.what-account-type-should-i-open",
+      "kind": "faq",
+      "title": "What account type should I open?",
+      "text": "It will depend on your trading strategy and preferred trading instruments. You may view the various account types here . You may open another account type that suits you better at a later stage too.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.what-is-the-minimum-initial-deposit-needed-to-open-an-account",
+      "kind": "faq",
+      "title": "What is the minimum initial deposit needed to open an account?",
+      "text": "It will depend on the account type that is being selected. You may view details of all our accounts here and the minimum deposit that is required for each account type.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.do-i-need-to-provide-any-documents-to-open-an-account",
+      "kind": "faq",
+      "title": "Do I need to provide any documents to open an account?",
+      "text": "For live accounts, we will require a Proof of identification and Proof of address via a bank statement or a utility bill that are not older than 6 months. Please ensure that your name is clearly displayed in these documents.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.how-long-does-it-take-to-open-an-account",
+      "kind": "faq",
+      "title": "How long does it take to open an account?",
+      "text": "Account opening and document verification will be completed within 48 hours.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.what-leverage-settings-should-i-select",
+      "kind": "faq",
+      "title": "What leverage settings should I select?",
+      "text": "Your leverage setting is dependent on your trading strategy and goals. At Valetax, we offer up to 1:2000 depending on account types. For more details, visit our Account types page here for more details.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "faq.do-you-offer-an-islamic-friendly-account",
+      "kind": "faq",
+      "title": "Do you offer an Islamic-friendly account?",
+      "text": "All our account are Islamic friendly and there is no swap is credited or withdrawn from all trading account.",
+      "pages": [
+        "open-account"
+      ]
+    },
+    {
+      "id": "verify.intro",
+      "kind": "intro",
+      "title": "How to Verify Account",
+      "text": "Identity verification plays a crucial role in ensuring the utmost security and protection against identity theft and fraud",
+      "pages": [
+        "verify"
+      ]
+    },
+    {
+      "id": "verify.steps",
+      "kind": "steps",
+      "title": "How to Verify Account: steps",
+      "text": "Step 1: Complete the required fields and upload the required documents to complete your KYC profile\nStep 2: Once completed, you will be taken to this page while your account is being reviewed\nStep 3: Account verification completed ! You’re all set to trade",
+      "pages": [
+        "verify"
+      ]
+    }
+  ]
+}
