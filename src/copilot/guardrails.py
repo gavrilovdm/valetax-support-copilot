@@ -77,6 +77,24 @@ def input_flags(ticket_text: str) -> set[Flag]:
             if any(p.search(ticket_text) for p in patterns)}
 
 
+_NEGATION = re.compile(
+    r"\b(not|cannot|can't|can ?not|unable|won't|don't|do not|never|no)\b|n't\b", _I
+)
+
+
+def _negated(draft: str, start: int) -> bool:
+    """True if the sentence holding the match negates it before the match.
+
+    A decline repeats the request ("we can't say whether you should buy gold"); without this
+    check the filter removes exactly the polite refusal the brief asks for (found in the first
+    live run, sample s3).
+    """
+    sentence_start = max(draft.rfind(".", 0, start), draft.rfind("!", 0, start),
+                         draft.rfind("?", 0, start)) + 1
+    return bool(_NEGATION.search(draft[sentence_start:start]))
+
+
 def advice_hits(draft: str) -> list[str]:
-    """Return the fragments of a draft that read as trading advice."""
-    return [m.group(0) for p in OUTPUT_ADVICE_PATTERNS for m in p.finditer(draft)]
+    """Return the fragments of a draft that read as trading advice (negated mentions excluded)."""
+    return [m.group(0) for p in OUTPUT_ADVICE_PATTERNS for m in p.finditer(draft)
+            if not _negated(draft, m.start())]

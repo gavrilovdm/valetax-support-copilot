@@ -40,4 +40,5 @@ def decide(
     queue, action, _ = matched[0]
     if any(a is RouteAction.ESCALATE for _, a, _ in matched):
         action = RouteAction.ESCALATE
-    return Route(action=action, queue=queue, reasons=[reason for _, _, reason in matched])
+    reasons = list(dict.fromkeys(reason for _, _, reason in matched))  # dedupe, keep order
+    return Route(action=action, queue=queue, reasons=reasons)
