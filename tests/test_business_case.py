@@ -32,3 +32,14 @@ def test_break_even_makes_net_zero() -> None:
     assert be is not None
     cfg = {**CFG, "drafts": {"default": {"accepted": be, "edited": 0.0, "discarded": 1 - be}}}
     assert abs(evaluate(cfg, "any", SUMMARY).net_usd) < 0.5
+
+
+def test_cheaper_provider_note_states_the_saving_in_agent_hours() -> None:
+    from copilot.business_case import _cheaper_provider_note
+
+    sonnet = evaluate(CFG, "claude-sonnet-5-5", SUMMARY)
+    cheap = evaluate(CFG, "deepseek-flash", {**SUMMARY, "cost_per_ticket_cached": 0.001})
+    note = _cheaper_provider_note([sonnet, cheap], sonnet, CFG)[0]
+    # 1000 tickets × ($0.01 − $0.001) = $9 = 0.75 h at $12/h
+    assert "saving of $9/month" in note and "about 1 agent-hours" in note
+    assert _cheaper_provider_note([sonnet], sonnet, CFG) == []

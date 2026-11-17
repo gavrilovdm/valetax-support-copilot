@@ -48,6 +48,15 @@ Hard rules the draft must follow:
   is correct behaviour. Generic courtesy is not a claim.
 - wrong_language: the draft must be in the language of the ticket.
 
+Known errors in this knowledge base (docs/KB_GAPS.md). Repeating one is an unsupported_claim even
+though the words appear in the KB:
+- `withdraw.steps` is a copy of the deposit steps; presenting them as withdrawal instructions.
+- calling deposits, withdrawals or funding "instant" (marketing wording; the fact is "within 60
+  minutes" for deposits);
+- saying withdrawals take 24 hours (the KB only says to contact support after 24 hours);
+- naming a minimum deposit for a specific account type (only "from 8 USD, depending on type");
+- answering yes/no to "can I trade before verification" (the pages contradict each other).
+
 Knowledge base:
 {kb}
 """

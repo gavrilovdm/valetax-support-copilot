@@ -4,3 +4,7 @@
 claude-opus-5-5:   {input: 4.00, output: 20.00, cache_read: 0.20, cache_write: 5.00}
 claude-sonnet-5-5: {input: 2.00, output: 10.00, cache_read: 0.10, cache_write: 2.50}
 claude-haiku-5-5:  {input: 0.10, output: 0.50,  cache_read: 0.01, cache_write: 0.125}
+# DeepSeek API, USD per 1M tokens, peak rates (checked 2026-11-17, api-docs.deepseek.com/quick_start/pricing).
+# Off-peak is half. Caching is automatic on repeated prefixes; no cache-write premium.
+deepseek-flash:    {input: 0.30, output: 1.20,  cache_read: 0.006, cache_write: 0.30}
+deepseek-v4-pro:   {input: 1.32, output: 3.96,  cache_read: 0.044, cache_write: 1.32}

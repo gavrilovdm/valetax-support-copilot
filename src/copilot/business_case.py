@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from copilot.prompt import DEFAULT_VERSION
+
 
 @dataclass(frozen=True)
 class DraftMix:
@@ -105,14 +107,18 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         "**Question:** is the co-pilot worth running at ~10,000 tickets/month, and with which "
         "configuration?",
         "",
-        f"**Answer: yes — run it on Claude Sonnet 5.5** (prompt `triage_v2`, cached prefix). "
+        f"**Answer: yes — run it on Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`, cached "
+        "prefix). "
         f"Expected net value ≈ **${best.net_usd:,.0f}/month** "
         f"(≈{best.hours_saved:,.0f} agent-hours saved); build cost pays back in "
         f"≈{payback:.1f} months. "
-        "It ties Opus on every safety metric at half the token cost; Haiku is cheaper by an "
-        "amount that does not matter here and lets more errors through. "
+        "It is the only model with zero hard-rule violations under both prompt versions; Opus "
+        "costs twice as much for no measurable gain. Haiku comes close on prompt v3, but had "
+        "violations under v2 and writes less complete drafts — and the token saving is smaller "
+        "than the cost of one bad answer. "
         "Start in shadow mode to replace the assumptions below with measured numbers.",
         "",
+        *_cheaper_provider_note(outcomes, best, cfg),
         "## Configurations (eval: 60 tickets; money: per month)",
         "",
         "| | Hard-rule violations | Queue acc. | High-urgency recall | LLM cost | "
@@ -160,7 +166,9 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         f"today; with a draft: {ag['aht_minutes_draft_accepted']:.0f} min if sent as-is, "
         f"{ag['aht_minutes_draft_edited']:.0f} min if edited; "
         f"{ag['triage_minutes_saved']} min of triage saved on every ticket.",
-        "- Drafts: 50% sent as-is, 35% edited, 15% discarded (Haiku 40/35/25).",
+        "- Drafts (sent as-is / edited / discarded): " + "; ".join(
+            f"{name} {mix['accepted']:.0%}/{mix['edited']:.0%}/{mix['discarded']:.0%}"
+            for name, mix in cfg["drafts"].items()) + ".",
         f"- LLM: eval token counts × list prices, {cfg['llm']['cache_hit_rate']:.0%} cache hits.",
         f"- Running: ${cfg['running_costs_usd_per_month']['infrastructure']} infra + "
         f"${cfg['running_costs_usd_per_month']['maintenance']} upkeep; build "
@@ -180,6 +188,25 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         "`reports/`._",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _cheaper_provider_note(outcomes: list[Outcome], best: Outcome, cfg: dict[str, Any]
+                           ) -> list[str]:
+    """Why a much cheaper non-Claude model still does not win, in money terms."""
+    other = next((o for o in outcomes if o.model.startswith("deepseek-")), None)
+    if other is None:
+        return []
+    saving = best.llm_usd - other.llm_usd
+    hours = saving / cfg["agents"]["cost_per_hour_usd"]
+    return [
+        f"DeepSeek Flash ({other.model}) costs ${other.llm_usd:,.0f} instead of "
+        f"${best.llm_usd:,.0f} in tokens: a saving of ${saving:,.0f}/month, about {hours:.0f} "
+        "agent-hours. Against that: a hard-rule violation in the eval where Sonnet has none, "
+        "larger run-to-run variance, and customer tickets sent to a new processor in another "
+        "jurisdiction (a compliance review, not a code change). Not worth it at this volume; "
+        "worth re-testing if volume grows 10× (docs/COST_MATRIX.md).",
+        "",
+    ]
 
 
 def _usd(value: float) -> str:

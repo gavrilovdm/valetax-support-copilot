@@ -130,6 +130,7 @@ class ValidationReport(BaseModel):
     dropped_citations: list[DroppedCitation] = Field(default_factory=list)
     unsupported_numbers: list[str] = Field(default_factory=list)
     advice_hits: list[str] = Field(default_factory=list)
+    kb_error_hits: list[str] = Field(default_factory=list)
     draft_removed_reason: str | None = None
 
 
@@ -140,6 +141,11 @@ class Usage(BaseModel):
     output_tokens: int = 0
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
+
+    @property
+    def total_input(self) -> int:
+        """Every prompt token, cached or not: what the request actually carried."""
+        return self.input_tokens + self.cache_read_tokens + self.cache_write_tokens
 
 
 class Meta(BaseModel):

@@ -14,6 +14,7 @@ from typing import Any
 from copilot.eval.dataset import EvalCase
 from copilot.eval.judge import Verdict
 from copilot.schema import CopilotResult, Queue, RouteAction, Urgency
+from copilot.validate import kb_error_hits
 
 SPECIALIST = {Queue.COMPLAINTS, Queue.COMPLIANCE}
 
@@ -81,6 +82,10 @@ def score_case(case: EvalCase, result: CopilotResult, verdict: Verdict | None) -
     if case.required_sections and result.draft:
         cited = {c.section_id for c in result.citations}
         s.checks["cited_required"] = bool(cited & set(case.required_sections))
+    if t.draft:
+        # Measured on the model's own draft, before the validator: does the model avoid the
+        # known KB errors by itself (G1/G4)? The validator removes such drafts either way.
+        s.checks["no_kb_error_raw"] = not kb_error_hits(t.draft, t.citations)
     if result.draft and verdict is not None:
         s.checks["no_violation"] = not verdict.violations
     return s
@@ -102,7 +107,7 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
     metas = [s.result.meta for s in scores if s.result.meta]
     verdicts = [s.verdict for s in scores if s.verdict]
     latencies = sorted(m.latency_ms for m in metas) or [0]
-    ins = [m.usage.input_tokens for m in metas] or [0]
+    ins = [m.usage.total_input for m in metas] or [0]
     outs = [m.usage.output_tokens for m in metas] or [0]
     removed = [s.result.validation.draft_removed_reason for s in scores
                if s.result.validation.draft_removed_reason]
@@ -126,6 +131,7 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
         "abstain_recall": rate(scores, "abstained"),
         "answer_rate_on_answerable": rate(scores, "answered"),
         "citation_hit": rate(scores, "cited_required"),
+        "model_kb_error_free": rate(scores, "no_kb_error_raw"),
         "validator_removals": len(removed),
         "validator_removal_reasons": sorted(removed),
         "judge_grounded": _mean(v.grounded for v in verdicts),
@@ -136,6 +142,10 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
         "mean_attempts": _mean(m.attempts for m in metas),
         "mean_input_tokens": round(mean_in),
         "mean_output_tokens": round(mean_out),
+        "max_output_tokens": max(outs),
+        "mean_cache_read_tokens": round(_mean(m.usage.cache_read_tokens for m in metas) or 0),
+        "cost_per_ticket_measured": round(
+            statistics.mean([_measured(prices, m.usage) for m in metas] or [0.0]), 6),
         "cost_per_ticket_uncached": _cost(prices, mean_in, mean_out, cached=0),
         "cost_per_ticket_cached": _cost(prices, mean_in, mean_out, cached=mean_in * prefix_share),
     }
@@ -144,6 +154,13 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
 def _mean(values: Any) -> float | None:
     items = list(values)
     return round(statistics.mean(items), 2) if items else None
+
+
+def _measured(prices: dict[str, float], u: Any) -> float:
+    """USD for one call with the cache split the backend actually reported."""
+    usd = (u.input_tokens * prices["input"] + u.cache_read_tokens * prices["cache_read"]
+           + u.cache_write_tokens * prices["cache_write"] + u.output_tokens * prices["output"])
+    return float(usd) / 1_000_000
 
 
 def _cost(prices: dict[str, float], tokens_in: float, tokens_out: float, cached: float) -> float:

@@ -4,52 +4,58 @@ Prompt `triage_v2`, KB `b7ada23840fe`, judge `claude-opus-5-5`.
 
 ## Split: test (n=20)
 
-| metric | claude-opus-5-5 | claude-sonnet-5-5 | claude-haiku-5-5 |
-|---|---|---|---|
-| hard_rule_violations | 0 | 0 | 0 |
-| drafts_judged | 17 | 17 | 16 |
-| specialist_routing_recall | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) |
-| queue_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) |
-| category_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) |
-| language_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) |
-| urgency_exact | 19/20 (95%, CI 76%–99%) | 20/20 (100%, CI 84%–100%) | 19/20 (95%, CI 76%–99%) |
-| high_urgency_recall | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 3/4 (75%, CI 30%–95%) |
-| abstain_recall | 1/1 (100%, CI 21%–100%) | 1/1 (100%, CI 21%–100%) | 1/1 (100%, CI 21%–100%) |
-| answer_rate_on_answerable | 13/13 (100%, CI 77%–100%) | 13/13 (100%, CI 77%–100%) | 13/13 (100%, CI 77%–100%) |
-| citation_hit | 9/9 (100%, CI 70%–100%) | 9/9 (100%, CI 70%–100%) | 9/9 (100%, CI 70%–100%) |
-| validator_removals | 2 | 1 | 3 |
-| judge_grounded | 4.76 | 5 | 4.88 |
-| judge_tone | 5 | 4.82 | 4.62 |
-| judge_completeness | 4.71 | 4.59 | 4.38 |
-| latency_p50_ms | 5617 | 3403 | 2191 |
-| latency_p95_ms | 8048 | 8516 | 3594 |
-| mean_input_tokens | 5122 | 5122 | 5233 |
-| mean_output_tokens | 611 | 566 | 485 |
-| cost_per_ticket_uncached | 0.032712 | 0.015909 | 0.000766 |
-| cost_per_ticket_cached | 0.013644 | 0.006375 | 0.000304 |
+| metric | claude-sonnet-5-5 | claude-opus-5-5 | claude-haiku-5-5 | deepseek-flash |
+|---|---|---|---|---|
+| hard_rule_violations | 0 | 0 | 0 | 0 |
+| drafts_judged | 17 | 17 | 17 | 17 |
+| specialist_routing_recall | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) |
+| queue_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) |
+| category_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 19/20 (95%, CI 76%–99%) |
+| language_accuracy | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) |
+| urgency_exact | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 20/20 (100%, CI 84%–100%) | 19/20 (95%, CI 76%–99%) |
+| high_urgency_recall | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) | 4/4 (100%, CI 51%–100%) |
+| abstain_recall | 1/1 (100%, CI 21%–100%) | 1/1 (100%, CI 21%–100%) | 1/1 (100%, CI 21%–100%) | 1/1 (100%, CI 21%–100%) |
+| answer_rate_on_answerable | 13/13 (100%, CI 77%–100%) | 13/13 (100%, CI 77%–100%) | 13/13 (100%, CI 77%–100%) | 13/13 (100%, CI 77%–100%) |
+| citation_hit | 9/9 (100%, CI 70%–100%) | 9/9 (100%, CI 70%–100%) | 9/9 (100%, CI 70%–100%) | 9/9 (100%, CI 70%–100%) |
+| model_kb_error_free | 18/18 (100%, CI 82%–100%) | 19/19 (100%, CI 83%–100%) | 19/19 (100%, CI 83%–100%) | 18/18 (100%, CI 82%–100%) |
+| validator_removals | 1 | 2 | 2 | 1 |
+| judge_grounded | 5 | 5 | 4.76 | 4.82 |
+| judge_tone | 4.76 | 4.88 | 4.88 | 4.82 |
+| judge_completeness | 4.76 | 4.71 | 4.29 | 4.59 |
+| latency_p50_ms | 3408 | 5445 | 2219 | 2365 |
+| latency_p95_ms | 6454 | 12570 | 2957 | 4270 |
+| mean_attempts | 1 | 1 | 1 | 1.05 |
+| mean_input_tokens | 5635 | 5635 | 5746 | 4080 |
+| mean_output_tokens | 531 | 649 | 481 | 376 |
+| cost_per_ticket_uncached | 0.016584 | 0.035518 | 0.000815 | 0.001676 |
+| cost_per_ticket_cached | 0.006071 | 0.014491 | 0.000307 | 0.000498 |
+| cost_per_ticket_measured | 0.016584 | 0.035518 | 0.000815 | 0.00053 |
 
 ## Split: all (n=60)
 
-| metric | claude-opus-5-5 | claude-sonnet-5-5 | claude-haiku-5-5 |
-|---|---|---|---|
-| hard_rule_violations | 0 | 0 | 2 |
-| drafts_judged | 50 | 50 | 49 |
-| specialist_routing_recall | 10/10 (100%, CI 72%–100%) | 10/10 (100%, CI 72%–100%) | 10/10 (100%, CI 72%–100%) |
-| queue_accuracy | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) | 57/60 (95%, CI 86%–98%) |
-| category_accuracy | 59/60 (98%, CI 91%–100%) | 60/60 (100%, CI 94%–100%) | 59/60 (98%, CI 91%–100%) |
-| language_accuracy | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) |
-| urgency_exact | 56/60 (93%, CI 84%–97%) | 57/60 (95%, CI 86%–98%) | 56/60 (93%, CI 84%–97%) |
-| high_urgency_recall | 7/8 (88%, CI 53%–98%) | 7/8 (88%, CI 53%–98%) | 5/8 (62%, CI 31%–86%) |
-| abstain_recall | 6/6 (100%, CI 61%–100%) | 6/6 (100%, CI 61%–100%) | 5/6 (83%, CI 44%–97%) |
-| answer_rate_on_answerable | 40/40 (100%, CI 91%–100%) | 40/40 (100%, CI 91%–100%) | 39/40 (98%, CI 87%–100%) |
-| citation_hit | 28/28 (100%, CI 88%–100%) | 28/28 (100%, CI 88%–100%) | 27/27 (100%, CI 88%–100%) |
-| validator_removals | 4 | 3 | 6 |
-| judge_grounded | 4.86 | 4.98 | 4.88 |
-| judge_tone | 4.96 | 4.9 | 4.67 |
-| judge_completeness | 4.68 | 4.7 | 4.41 |
-| latency_p50_ms | 4742 | 3296 | 2110 |
-| latency_p95_ms | 8048 | 7037 | 2823 |
-| mean_input_tokens | 5121 | 5121 | 5232 |
-| mean_output_tokens | 582 | 522 | 468 |
-| cost_per_ticket_uncached | 0.032117 | 0.01546 | 0.000757 |
-| cost_per_ticket_cached | 0.013052 | 0.005927 | 0.000296 |
+| metric | claude-sonnet-5-5 | claude-opus-5-5 | claude-haiku-5-5 | deepseek-flash |
+|---|---|---|---|---|
+| hard_rule_violations | 0 | 1 | 0 | 1 |
+| drafts_judged | 49 | 50 | 51 | 50 |
+| specialist_routing_recall | 10/10 (100%, CI 72%–100%) | 10/10 (100%, CI 72%–100%) | 10/10 (100%, CI 72%–100%) | 10/10 (100%, CI 72%–100%) |
+| queue_accuracy | 59/60 (98%, CI 91%–100%) | 60/60 (100%, CI 94%–100%) | 59/60 (98%, CI 91%–100%) | 60/60 (100%, CI 94%–100%) |
+| category_accuracy | 60/60 (100%, CI 94%–100%) | 58/60 (97%, CI 89%–99%) | 58/60 (97%, CI 89%–99%) | 55/60 (92%, CI 82%–96%) |
+| language_accuracy | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) | 60/60 (100%, CI 94%–100%) |
+| urgency_exact | 58/60 (97%, CI 89%–99%) | 58/60 (97%, CI 89%–99%) | 58/60 (97%, CI 89%–99%) | 58/60 (97%, CI 89%–99%) |
+| high_urgency_recall | 8/8 (100%, CI 68%–100%) | 8/8 (100%, CI 68%–100%) | 8/8 (100%, CI 68%–100%) | 8/8 (100%, CI 68%–100%) |
+| abstain_recall | 6/6 (100%, CI 61%–100%) | 6/6 (100%, CI 61%–100%) | 5/6 (83%, CI 44%–97%) | 6/6 (100%, CI 61%–100%) |
+| answer_rate_on_answerable | 39/40 (98%, CI 87%–100%) | 40/40 (100%, CI 91%–100%) | 40/40 (100%, CI 91%–100%) | 40/40 (100%, CI 91%–100%) |
+| citation_hit | 28/28 (100%, CI 88%–100%) | 28/28 (100%, CI 88%–100%) | 28/28 (100%, CI 88%–100%) | 28/28 (100%, CI 88%–100%) |
+| model_kb_error_free | 54/54 (100%, CI 93%–100%) | 54/54 (100%, CI 93%–100%) | 56/56 (100%, CI 94%–100%) | 57/57 (100%, CI 94%–100%) |
+| validator_removals | 5 | 4 | 5 | 7 |
+| judge_grounded | 5 | 4.92 | 4.86 | 4.84 |
+| judge_tone | 4.86 | 4.96 | 4.82 | 4.8 |
+| judge_completeness | 4.78 | 4.78 | 4.55 | 4.64 |
+| latency_p50_ms | 3150 | 4845 | 2083 | 2313 |
+| latency_p95_ms | 6454 | 8506 | 2772 | 6203 |
+| mean_attempts | 1 | 1 | 1 | 1.03 |
+| mean_input_tokens | 5634 | 5634 | 5745 | 4014 |
+| mean_output_tokens | 518 | 601 | 472 | 366 |
+| cost_per_ticket_uncached | 0.016448 | 0.034558 | 0.00081 | 0.001644 |
+| cost_per_ticket_cached | 0.005936 | 0.013534 | 0.000303 | 0.000485 |
+| cost_per_ticket_measured | 0.016448 | 0.034558 | 0.00081 | 0.000516 |

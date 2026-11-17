@@ -21,6 +21,8 @@ uv run copilot triage "text"              # one ticket
 uv run copilot run data/samples/tickets.jsonl
 uv run copilot eval --model claude-sonnet-5-5 --split test   # live; writes reports/eval-*
 uv run copilot eval-report                # re-score stored runs with current labels
+uv run copilot token-probe --model M      # tokenizer probe → reports/tokens-M.json
+uv run copilot cost-matrix                # docs/COST_MATRIX.md from stored runs, no LLM calls
 uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 ```
 
@@ -42,4 +44,6 @@ uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 - Every decision that someone may ask "why?" about gets an ADR in `docs/decisions/`.
 - Prompts are versioned files; a new version is tuned on the dev split only, then frozen and run
   once on test. Label changes carry a `label_fix` field and are explained in EVAL_RESULTS.md.
+- `deepseek-*` models go to the DeepSeek API (`DEEPSEEK_API_KEY` in `.env`), thinking disabled.
+- Eval files are named `eval-<split>-<model>-<prompt>`; the default prompt's summaries have no suffix.
 - Never commit `.env`, proxy keys (`cpx_…`) or API keys.

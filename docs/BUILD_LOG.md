@@ -88,3 +88,21 @@ what went wrong. Each step is a branch and a PR with CI.
 - Measured the keyword net on its own while writing ADR-006 and found it far weaker than the
   model (advice 3/8 vs 8/8). The docstring had claimed it was "measured separately"; corrected to
   what the numbers say: a backstop for a model regression, not an equal second detector.
+
+## 7. Token accounting, DeepSeek, prompt v3 (PR #8)
+
+- **Token metrics.** Usage of every call is kept with the eval results, cached and uncached input
+  apart, so cost can be compared across providers. A tokenizer probe (`max_tokens=1`, no tools)
+  isolates the tokenizer: Opus, Sonnet and Haiku 5.5 count identically; DeepSeek needs 30–45%
+  fewer tokens for the same text.
+- **Found while doing it:** tokens of failed attempts (text instead of the tool call) were not
+  counted. Zero impact on the Claude runs (no retries), but the cost metric would have been low
+  for any model that retries.
+- **DeepSeek** through the same OpenAI-compatible client. Its first run exposed a second bug:
+  invalid JSON in tool arguments was not retried. Both fixed with tests.
+- **Prompt v3** tuned in three dev runs. The first one regressed urgency because of a line I added
+  (table in EVAL_RESULTS); the fix was one sentence, not a rewrite. G1/G4 now also enforced in the
+  validator (ADR-019), and the judge knows the known KB errors.
+- **Honest variance:** two identical DeepSeek runs differed by 3 violations. The docs now say one
+  run per config cannot rank models this close.
+

@@ -1,0 +1,58 @@
+{
+  "request_overhead": 4,
+  "prefix_tokens": 3023,
+  "languages": {
+    "ar": {
+      "texts": 3,
+      "chars": 118,
+      "tokens": 51,
+      "tokens_per_100_chars": 43.2
+    },
+    "en": {
+      "texts": 47,
+      "chars": 2822,
+      "tokens": 643,
+      "tokens_per_100_chars": 22.8
+    },
+    "es": {
+      "texts": 2,
+      "chars": 114,
+      "tokens": 32,
+      "tokens_per_100_chars": 28.1
+    },
+    "fr": {
+      "texts": 1,
+      "chars": 47,
+      "tokens": 11,
+      "tokens_per_100_chars": 23.4
+    },
+    "id": {
+      "texts": 2,
+      "chars": 115,
+      "tokens": 31,
+      "tokens_per_100_chars": 27.0
+    },
+    "pt": {
+      "texts": 1,
+      "chars": 66,
+      "tokens": 19,
+      "tokens_per_100_chars": 28.8
+    },
+    "ru": {
+      "texts": 3,
+      "chars": 158,
+      "tokens": 49,
+      "tokens_per_100_chars": 31.0
+    },
+    "tr": {
+      "texts": 1,
+      "chars": 50,
+      "tokens": 20,
+      "tokens_per_100_chars": 40.0
+    }
+  },
+  "mean_ticket_block_tokens": 53,
+  "model": "deepseek-flash",
+  "backend": "deepseek",
+  "prompt_version": "triage_v3"
+}

@@ -21,3 +21,5 @@ One file per decision: context, options, decision, consequences, evidence.
 | [015](ADR-015-never-auto-send.md) | The co-pilot never sends; it drafts and routes |
 | [016](ADR-016-shadow-mode-rollout.md) | Roll out through two weeks of shadow mode |
 | [017](ADR-017-llm-backends.md) | Two LLM backends behind one small port |
+| [018](ADR-018-token-accounting-and-deepseek.md) | Measure tokens per model; add DeepSeek as a non-Claude comparison |
+| [019](ADR-019-known-kb-errors-in-code.md) | Known errors of the source pages are enforced in code, not only in the prompt |

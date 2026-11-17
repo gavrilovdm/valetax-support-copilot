@@ -8,7 +8,7 @@ import pytest
 from copilot.llm import (
     AnthropicLLM,
     LLMError,
-    ProxyLLM,
+    OpenAICompatLLM,
     strict_schema,
     structured_call,
 )
@@ -22,7 +22,7 @@ GOOD = {
 }
 
 
-def proxy_with(responses: list[dict[str, Any]], seen: list[dict[str, Any]]) -> ProxyLLM:
+def proxy_with(responses: list[dict[str, Any]], seen: list[dict[str, Any]]) -> OpenAICompatLLM:
     queue = list(responses)
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -30,7 +30,7 @@ def proxy_with(responses: list[dict[str, Any]], seen: list[dict[str, Any]]) -> P
         return httpx.Response(200, json=queue.pop(0))
 
     client = httpx.Client(base_url="http://proxy/v1", transport=httpx.MockTransport(handler))
-    return ProxyLLM(client, "claude-sonnet-5-5")
+    return OpenAICompatLLM(client, "claude-sonnet-5-5")
 
 
 def tool_reply(args: dict[str, Any]) -> dict[str, Any]:
@@ -80,7 +80,7 @@ def test_proxy_http_error_raises_llm_error() -> None:
     client = httpx.Client(base_url="http://proxy/v1", transport=httpx.MockTransport(
         lambda r: httpx.Response(401, text="bad key")))
     with pytest.raises(LLMError, match="401"):
-        ProxyLLM(client, "m").complete("p", "t", {})
+        OpenAICompatLLM(client, "m").complete("p", "t", {})
 
 
 def test_strict_schema_is_closed_and_inlined() -> None:
@@ -147,3 +147,72 @@ def test_missing_api_key_fails_at_startup_with_a_clear_message(
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
     with pytest.raises(LLMError, match="ANTHROPIC_API_KEY is not set"):
         make_llm("anthropic", "claude-sonnet-5-5")
+
+
+def test_deepseek_models_go_to_deepseek_with_thinking_disabled() -> None:
+    from copilot.llm import make_llm
+
+    with pytest.raises(LLMError, match="DEEPSEEK_API_KEY"):
+        make_llm("proxy", "deepseek-flash", proxy_api_key="k")
+    llm = make_llm("proxy", "deepseek-flash", proxy_api_key="k", deepseek_api_key="d")
+    assert llm.backend == "deepseek"
+    assert isinstance(llm, OpenAICompatLLM)
+    assert llm._extra == {"thinking": {"type": "disabled"}}
+
+
+def test_extra_body_reaches_the_request() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json=tool_reply(GOOD))
+
+    client = httpx.Client(base_url="http://ds", transport=httpx.MockTransport(handler))
+    llm = OpenAICompatLLM(client, "deepseek-flash", backend="deepseek",
+                          extra_body={"thinking": {"type": "disabled"}})
+    structured_call(llm, "RULES", block)
+    assert seen[0]["thinking"] == {"type": "disabled"}
+
+
+def test_cached_prompt_tokens_are_split_out_on_every_openai_dialect() -> None:
+    from copilot.llm import openai_usage
+
+    deepseek = openai_usage({"prompt_tokens": 1000, "completion_tokens": 50,
+                             "prompt_cache_hit_tokens": 800, "prompt_cache_miss_tokens": 200})
+    openai = openai_usage({"prompt_tokens": 1000, "completion_tokens": 50,
+                           "prompt_tokens_details": {"cached_tokens": 800}})
+    plain = openai_usage({"prompt_tokens": 1000, "completion_tokens": 50})
+    assert deepseek == openai
+    assert (deepseek.input_tokens, deepseek.cache_read_tokens) == (200, 800)
+    assert deepseek.total_input == plain.total_input == 1000
+
+
+def test_count_prompt_tokens_sends_no_tools_and_one_token_budget() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "x"}}],
+                                         "usage": {"prompt_tokens": 42, "completion_tokens": 1}})
+
+    client = httpx.Client(base_url="http://p", transport=httpx.MockTransport(handler))
+    assert OpenAICompatLLM(client, "m").count_prompt_tokens("hello") == 42
+    assert seen[0]["max_tokens"] == 1 and "tools" not in seen[0]
+
+
+def test_malformed_tool_arguments_are_retried_with_feedback() -> None:
+    seen: list[dict[str, Any]] = []
+    broken = {"choices": [{"message": {"tool_calls": [
+        {"function": {"name": "submit_triage", "arguments": '{"draft": "say "hi""}'}}]}}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 20}}
+    result, _, attempts = structured_call(proxy_with([broken, tool_reply(GOOD)], seen), "R", block)
+    assert attempts == 2 and result.category.value == "deposit"
+    assert "not valid JSON" in seen[1]["messages"][0]["content"]
+
+
+def test_tokens_of_failed_attempts_are_counted() -> None:
+    seen: list[dict[str, Any]] = []
+    _, usage, attempts = structured_call(
+        proxy_with([text_reply("no tool"), tool_reply(GOOD)], seen), "R", block)
+    assert attempts == 2
+    assert (usage.input_tokens, usage.output_tokens) == (190, 25)

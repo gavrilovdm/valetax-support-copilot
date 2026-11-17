@@ -18,9 +18,12 @@ agents:
 
 drafts:                             # what agents do with drafts; to be measured in shadow mode
   default:  {accepted: 0.50, edited: 0.35, discarded: 0.15}
-  # Haiku: lower judge completeness (4.41 vs 4.70) and 2/49 drafts with unsupported claims in
-  # the eval → assume more edits and discards
+  # Haiku: lower judge completeness (v3: 4.55 vs Sonnet 4.78) and 2/49 drafts with unsupported
+  # claims under prompt v2 (0/51 under v3) → assume more edits and discards
   claude-haiku-5-5: {accepted: 0.40, edited: 0.35, discarded: 0.25}
+  # DeepSeek Flash: 1/50 judged drafts with an unsupported claim on v3, judge completeness below
+  # Sonnet's, and bigger differences between repeated runs → between Sonnet and Haiku
+  deepseek-flash: {accepted: 0.45, edited: 0.35, discarded: 0.20}
 
 llm:
   cache_hit_rate: 0.80              # assumption: ~14 tickets/hour keeps the 5-min cache mostly warm
@@ -37,3 +40,4 @@ configs:                            # candidates; quality and token cost come fr
   - claude-opus-5-5
   - claude-sonnet-5-5
   - claude-haiku-5-5
+  - deepseek-flash
