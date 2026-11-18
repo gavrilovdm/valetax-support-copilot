@@ -66,6 +66,8 @@ def test_signed_in_user_gets_the_triage_result(client: Client) -> None:
     assert status == 200
     assert result["route"]["action"] == "assist"
     assert result["citations"][0]["section_id"] == "faq.what-is-the-minimum-deposit-amount"
+    assert "https://valetax.com/how-to-deposit/" in (
+        result["source_pages"]["faq.what-is-the-minimum-deposit-amount"])
 
 
 def test_session_cookie_is_httponly_strict_and_secure(kb: KnowledgeBase, llm: FakeLLM) -> None:

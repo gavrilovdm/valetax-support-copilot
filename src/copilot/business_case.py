@@ -3,9 +3,11 @@
 Inputs: `business_case.yaml` (volumes, cache hit rate, rollout) and the eval reports (measured
 quality and tokens per ticket). Output: `docs/BUSINESS_CASE.md`.
 
-Only the running cost is computed: tokens per ticket × list prices × tickets per month. Operator
-savings are deliberately left out: they depend on Valetax's operator cost and handling time, and
-on a transition period that has to be measured, not assumed.
+The running cost is computed: tokens per ticket × list prices × tickets per month. Operator
+savings are not estimated: they depend on Valetax's operator cost and handling time, and on a
+transition period that has to be measured, not assumed. The page answers "is it worth running"
+with a break-even instead: the operator seconds per ticket a draft must save to cover its cost,
+for a range of operator rates.
 """
 
 from __future__ import annotations
@@ -62,6 +64,35 @@ def shadow_cost(outcome: Outcome, tickets_per_month: int, weeks: float) -> float
     return outcome.monthly(tickets_per_month) * weeks / WEEKS_PER_MONTH
 
 
+def break_even_seconds(usd_per_month: float, tickets: int, usd_per_hour: float) -> float:
+    """Operator seconds a draft must save per ticket to pay `usd_per_month` at this rate."""
+    return usd_per_month / tickets / (usd_per_hour / 3600)
+
+
+def _break_even_section(cfg: dict[str, Any], best: Outcome, tickets: int) -> list[str]:
+    rates: list[float] = cfg["break_even"]["operator_usd_per_hour"]
+    upkeep: float = cfg["break_even"]["upkeep_usd_per_month"]
+    tokens = best.monthly(tickets)
+
+    def row(label: str, usd: float) -> str:
+        cells = " | ".join(f"{break_even_seconds(usd, tickets, r):.0f} s" for r in rates)
+        return f"| {label} | {cells} |"
+
+    return [
+        f"## Break-even: operator seconds a draft must save per ticket ({tickets:,}/month)",
+        "",
+        "| Cost to cover | " + " | ".join(f"operator ${r:g}/h" for r in rates) + " |",
+        "|---|" + "---|" * len(rates),
+        row(f"Sonnet tokens (${tokens:,.0f}/month)", tokens),
+        row(f"+ ${upkeep:,.0f}/month engineering upkeep", tokens + upkeep),
+        "",
+        "Tokens are covered by a few seconds per ticket at any rate; engineering upkeep sets the "
+        "real bar. Shadow mode measures the time a draft actually saves before any customer "
+        "sees one.",
+        "",
+    ]
+
+
 def _opus_note(outcomes: list[Outcome], best: Outcome) -> str:
     """Opus against the recommendation: price ratio and the gap in correct outcomes."""
     opus = next((o for o in outcomes if o.model == "claude-opus-5-5"), None)
@@ -82,15 +113,25 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
     volumes: list[int] = cfg["volumes"]
     base = volumes[0]
     weeks = cfg["rollout"]["shadow_weeks"]
+    rates: list[float] = cfg["break_even"]["operator_usd_per_hour"]
+    mid_rate = rates[len(rates) // 2]
+    upkeep: float = cfg["break_even"]["upkeep_usd_per_month"]
 
     lines = [
         "# Business case — one page",
         "",
-        f"**Question:** what does the co-pilot cost to run at ~{base:,} tickets/month, and on "
-        "which model?",
+        f"**Question:** is the co-pilot worth running at ~{base:,} tickets/month, and with "
+        "which configuration?",
         "",
-        f"**Answer: Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`, cached prefix), "
-        f"**≈ ${best.monthly(base):,.0f}/month** in tokens at {base:,} tickets "
+        f"**Verdict: yes, on Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`, cached prefix), "
+        "going live through shadow mode. It pays for its tokens if a draft saves an operator "
+        f"~{break_even_seconds(best.monthly(base), base, mid_rate):.0f} seconds per ticket "
+        f"(at ${mid_rate:g}/hour); with ${upkeep:,.0f}/month of engineering upkeep the bar is "
+        f"~{break_even_seconds(best.monthly(base) + upkeep, base, mid_rate):.0f} seconds. Go "
+        "to assist mode once shadow mode shows drafts saving more than that with zero "
+        "hard-rule violations.",
+        "",
+        f"**Cost:** **≈ ${best.monthly(base):,.0f}/month** in tokens at {base:,} tickets "
         f"(${best.usd_per_ticket:.4f} per ticket). "
         f"It handles {best.correct} tickets correctly with zero hard-rule violations — the only "
         f"model at zero under every prompt version and eval set. {_opus_note(outcomes, best)} "
@@ -98,6 +139,7 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         "correctly.",
         "",
         *_cheaper_provider_note(outcomes, best, base),
+        *_break_even_section(cfg, best, base),
         f"## Running cost by model and volume (eval: {_n(summaries)} tickets)",
         "",
         "| | Correct outcome | Hard-rule violations | Queue acc. | High-urgency recall | "
@@ -127,10 +169,10 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         f"- In: eval token counts × list prices (`configs/prices.yaml`), "
         f"{cfg['llm']['cache_hit_rate']:.0%} cache hits on the rules + KB prefix, retries "
         "included.",
-        "- Not in: hosting (one small container), engineering upkeep, and operator savings. "
-        "Savings need Valetax's operator cost per hour and handling time per ticket, then the "
-        "shadow-mode measurements (accepted / edited / discarded drafts, handling time before and "
-        "after).",
+        "- Not in: hosting (one small container) and an estimate of operator savings; upkeep "
+        "only as the round unit above. Savings need Valetax's operator cost per hour and "
+        "handling time per ticket, then the shadow-mode measurements (accepted / edited / "
+        "discarded drafts, handling time before and after).",
         "",
         "_Generated by `uv run copilot business-case` from `business_case.yaml` and "
         "`reports/`._",

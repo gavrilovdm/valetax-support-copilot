@@ -2,7 +2,7 @@
 
 A support-ticket co-pilot for a retail forex/CFD broker. For each ticket it **classifies**
 (category, urgency, language, sentiment), **drafts a reply grounded in the help centre with
-verifiable citations — or abstains**, and **routes** to the right human. It never sends anything
+verifiable citations to the pages used — or abstains**, and **routes** to the right human. It never sends anything
 itself. Built as a take-home for Valetax, with an eval harness and a one-page business case.
 
 ## Results at a glance
@@ -15,6 +15,7 @@ itself. Built as a take-home for Valetax, with an eval harness and a one-page bu
 | Complaint / KYC tickets sent to a human | **16 / 16** (every model) |
 | Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.7 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
 | Running cost at 10k tickets/month | **≈ $84/month in tokens (Sonnet 5.5)**; operator savings not estimated |
+| Worth running? | **Yes**, through shadow mode: tokens pay off at ~3 s of operator time saved per ticket ($10/h), ~39 s with $1k/month upkeep ([business case](docs/BUSINESS_CASE.md)) |
 
 Details: [eval results](docs/EVAL_RESULTS.md) · [business case](docs/BUSINESS_CASE.md) ·
 [Phase 2](docs/PHASE2.md) · [decisions (ADRs)](docs/decisions/README.md) · [KB gaps](docs/KB_GAPS.md) ·
@@ -52,7 +53,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 317 tests, no network, no keys
+uv run pytest                      # 319 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl

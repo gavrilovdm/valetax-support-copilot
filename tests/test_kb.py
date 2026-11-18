@@ -66,3 +66,9 @@ def test_render_puts_section_ids_in_the_prompt(kb: KnowledgeBase) -> None:
 def test_changed_template_fails_loudly() -> None:
     with pytest.raises(KBParseError):
         parse_page("deposit", "<html><main><h1>How to Deposit</h1><p>x</p></main></html>")
+
+
+def test_a_shared_section_links_every_page_it_is_on(kb: KnowledgeBase) -> None:
+    shared = next(s for s in kb.sections if len(s.pages) > 1)
+    assert kb.page_urls(shared.id) == [PAGES[p] for p in shared.pages]
+    assert kb.page_urls("no.such.section") == []

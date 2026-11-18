@@ -1,6 +1,7 @@
 # ADR-014: CLI and generated reports instead of a web UI
 
-Status: accepted · 2026-11-17
+Status: accepted · 2026-11-17 · amended 2026-11-19 by [ADR-023](ADR-023-web-demo-behind-a-password.md)
+(a password-protected demo page on top of the same pipeline; the CLI stays the main interface)
 
 ## Context
 

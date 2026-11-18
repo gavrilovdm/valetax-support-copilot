@@ -1,12 +1,18 @@
 # Inputs of docs/BUSINESS_CASE.md. Edit and run `uv run copilot business-case`.
 # The page shows what the system costs to run: measured tokens per ticket × list prices × volume.
 # Operator savings are not estimated: they need Valetax's own operator cost and handling time.
+# Instead the page shows the break-even: how many seconds of operator time a draft must save per
+# ticket to pay for itself, over a range of operator rates (Valetax plugs in its own).
 
 volumes: [10000, 50000, 100000]     # tickets/month; 10k from the brief, the rest for growth
 
 llm:
   cache_hit_rate: 0.80              # assumption: ~14 tickets/hour keeps the 5-min cache mostly warm
                                     # in working hours, cold at night
+
+break_even:
+  operator_usd_per_hour: [5, 10, 20]  # a sweep, not an estimate: the answer for each rate
+  upkeep_usd_per_month: 1000          # a round unit of engineering upkeep, to show its weight
 
 rollout:
   shadow_weeks: 2                   # drafts generated for every ticket but not shown (ADR-016)

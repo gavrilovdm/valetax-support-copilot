@@ -85,6 +85,7 @@ class Copilot:
             draft=restore(draft, pii_map) if draft else None,
             citations=citations,
             route=route,
+            source_pages={c.section_id: self.kb.page_urls(c.section_id) for c in citations},
             keyword_flags=sorted(keyword_flags),
             validation=report,
             meta=Meta(

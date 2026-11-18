@@ -57,6 +57,11 @@ class KnowledgeBase(BaseModel):
         """Return the section with this id, or None if the id does not exist."""
         return next((s for s in self.sections if s.id == section_id), None)
 
+    def page_urls(self, section_id: str) -> list[str]:
+        """Public URLs of the help pages a section appears on (empty for an unknown id)."""
+        section = self.get(section_id)
+        return [PAGES[page] for page in section.pages] if section else []
+
     def ids(self) -> set[str]:
         """Return every section id."""
         return {s.id for s in self.sections}

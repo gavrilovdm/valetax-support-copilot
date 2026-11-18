@@ -1,6 +1,6 @@
 # ADR-020: The business case shows running cost only
 
-Status: accepted · 2026-11-18
+Status: accepted · 2026-11-18 · amended 2026-11-19 (break-even and verdict, see below)
 
 ## Context
 
@@ -30,3 +30,11 @@ needed to estimate savings later.
 ## Evidence
 
 docs/BUSINESS_CASE.md, docs/COST_MATRIX.md, `copilot business-case`.
+
+## Amendment 2026-11-19: break-even and a verdict
+
+The brief asks "is this worth running", and a cost alone does not answer it. The page now states a
+verdict and a break-even: how many seconds of operator time a draft must save per ticket to pay for
+its tokens, and for tokens plus a round $1,000/month of engineering upkeep, at operator rates of
+$5 / $10 / $20 an hour. This needs no estimate of savings: Valetax reads off the row for its own
+rate, and shadow mode measures the seconds actually saved. Savings are still not estimated.

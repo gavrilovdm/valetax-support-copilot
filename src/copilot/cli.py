@@ -74,7 +74,8 @@ def _show(result: CopilotResult) -> None:
                            + "; ".join(result.route.reasons))
     table.add_row("draft", result.draft or "[dim](none)[/]")
     for c in result.citations:
-        table.add_row("cites", f"{c.section_id}: “{c.evidence_quote}”")
+        pages = " ".join(result.source_pages.get(c.section_id, []))
+        table.add_row("cites", f"{c.section_id}: “{c.evidence_quote}” {pages}".rstrip())
     if result.validation.draft_removed_reason:
         table.add_row("removed", result.validation.draft_removed_reason)
     if result.meta:
