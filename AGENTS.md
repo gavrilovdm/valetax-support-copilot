@@ -24,6 +24,8 @@ uv run copilot eval-report                # re-score stored runs with current la
 uv run copilot token-probe --model M      # tokenizer probe → reports/tokens-M.json
 uv run copilot cost-matrix                # docs/COST_MATRIX.md from stored runs, no LLM calls
 uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
+uv run copilot serve                      # demo page + API locally (COPILOT_WEB_PASSWORD in .env)
+vercel deploy --prod                      # demo on Vercel; LLM via llm-proxy's ngrok tunnel
 ```
 
 ## Structure
@@ -47,3 +49,7 @@ uv run copilot business-case              # rebuild docs/BUSINESS_CASE.md
 - `deepseek-*` models go to the DeepSeek API (`DEEPSEEK_API_KEY` in `.env`), thinking disabled.
 - Eval files are named `eval-<split>-<model>-<prompt>`; the default prompt's summaries have no suffix.
 - Never commit `.env`, proxy keys (`cpx_…`) or API keys.
+- Web demo (ADR-023): `api/index.py` restores the route Vercel's rewrite passes in `?route=`;
+  `.vercelignore` is an allowlist, so a new runtime file must be added there and to `includeFiles`.
+  Vercel env: `COPILOT_LLM_BACKEND=proxy`, `COPILOT_LLM_BASE_URL` (ngrok URL + `/v1`),
+  `COPILOT_MODEL`, and as sensitive variables `COPILOT_LLM_API_KEY` and `COPILOT_WEB_PASSWORD`.

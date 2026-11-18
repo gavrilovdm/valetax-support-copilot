@@ -26,3 +26,4 @@ One file per decision: context, options, decision, consequences, evidence.
 | [020](ADR-020-business-case-running-cost-only.md) | The business case shows running cost only, no estimated operator savings |
 | [021](ADR-021-eval-set-v2-and-business-scorecard.md) | 40 harder tickets (look-alikes, more languages, planted numbers) and a correct / fast / cheap scorecard |
 | [022](ADR-022-narrow-keyword-net-exclusions.md) | The keyword net skips negated complaints, someone else's account and AML-policy questions; it still escalates |
+| [023](ADR-023-web-demo-behind-a-password.md) | Web demo on Vercel: one Python function, password in an encrypted env var, signed HttpOnly session cookie, LLM through the local proxy |

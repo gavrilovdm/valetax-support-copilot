@@ -1,0 +1,3 @@
+# Runtime dependencies of the Vercel function (api/index.py); the CLI and evals use pyproject.toml.
+httpx>=0.27
+pydantic>=2.9

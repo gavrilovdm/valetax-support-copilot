@@ -13,11 +13,12 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
+from copilot.config import KB_PATH, Settings
 from copilot.guardrails import input_flags
 from copilot.kb import KnowledgeBase
-from copilot.llm import LLMError, StructuredLLM, structured_call
+from copilot.llm import LLMError, StructuredLLM, make_llm, structured_call
 from copilot.pii import redact, restore
-from copilot.prompt import Prompt
+from copilot.prompt import DEFAULT_VERSION, Prompt, load_prompt
 from copilot.route import decide
 from copilot.schema import (
     CopilotResult,
@@ -44,6 +45,17 @@ class Copilot:
     llm: StructuredLLM
     kb: KnowledgeBase
     prompt: Prompt
+
+    @classmethod
+    def from_env(cls, model: str | None = None, prompt_version: str = DEFAULT_VERSION) -> Copilot:
+        """Wire the co-pilot from settings, the KB snapshot and a prompt version.
+
+        Raises `LLMError` when the backend is misconfigured (e.g. a missing key).
+        """
+        settings = Settings.from_env()
+        kb = KnowledgeBase.load(KB_PATH)
+        llm = make_llm(settings.backend, model or settings.model, **settings.llm_kwargs())
+        return cls(llm=llm, kb=kb, prompt=load_prompt(kb, prompt_version))
 
     def triage(self, ticket: Ticket) -> CopilotResult:
         """Classify, draft or abstain, validate and route one ticket."""
