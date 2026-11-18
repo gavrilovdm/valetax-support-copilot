@@ -60,6 +60,8 @@
   .draft { white-space: pre-wrap; background: var(--quote); border-radius: 8px; padding: 12px 14px; }
   .cite { border-left: 3px solid var(--accent); padding: 4px 0 4px 10px; margin: 8px 0; }
   .cite code { font-size: 12px; color: var(--muted); }
+  .cite .pages { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; margin-top: 2px; }
+  .cite .pages a { color: var(--accent); overflow-wrap: anywhere; }
   .muted { color: var(--muted); }
   .meta { font-size: 13px; color: var(--muted); }
   [hidden] { display: none !important; }
@@ -211,7 +213,10 @@ function render(r) {
   if (r.citations.length) {
     draftPanel.append(el("h2", { style: "margin-top:14px" }, "Sources"));
     for (const c of r.citations) {
-      draftPanel.append(el("div", { className: "cite" }, el("code", {}, c.section_id), el("div", {}, `“${c.evidence_quote}”`)));
+      const pages = (r.source_pages || {})[c.section_id] || [];
+      draftPanel.append(el("div", { className: "cite" }, el("code", {}, c.section_id), el("div", {}, `“${c.evidence_quote}”`),
+        pages.length ? el("div", { className: "pages" }, pages.map((u) =>
+          el("a", { href: u, target: "_blank", rel: "noopener noreferrer" }, u.replace("https://", "")))) : null));
     }
   }
   if (t && t.unanswered.length) {

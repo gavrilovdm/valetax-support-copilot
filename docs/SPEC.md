@@ -1,7 +1,8 @@
 # Spec
 
 The brief, the facts the design rests on, and the decisions taken before writing code.
-Each decision D1–D17 has an ADR in [`decisions/`](decisions/) with alternatives and consequences.
+Each decision D1–D17 has an ADR in [`decisions/`](decisions/) with alternatives and consequences;
+decisions taken later, while building, are ADR-018 onwards.
 
 ## Brief (from Valetax)
 
@@ -55,7 +56,7 @@ is an eval case.
 | D11 | Batch API | Offline evals and reprocessing only | 24 h latency is unacceptable for live tickets |
 | D12 | Prompt injection | Ticket is untrusted data in its own block; model has no tools; flag → human | Blast radius limited by architecture, not by prompt wording |
 | D13 | PII | Redact cards (Luhn), IBANs, emails, phones before the LLM; restore in the draft | Regulated financial data; the model does not need it |
-| D14 | UI | CLI + eval report | Allowed by the brief; time goes into evals |
+| D14 | UI | CLI + eval report; later a password-protected demo page ([ADR-023](decisions/ADR-023-web-demo-behind-a-password.md)) | Allowed by the brief; time goes into evals. The page came once the evals were done, so reviewers can try it without installing anything |
 | D15 | Human in the loop | Never sends. `assist` (agent reviews and sends) or `escalate` (specialist queue) | It is a co-pilot; auto-send is a later, data-backed decision |
 | D16 | Rollout | Shadow mode 2 weeks → assist mode | Validates business-case assumptions before touching customers |
 | D17 | LLM backends | Anthropic SDK (production) + OpenAI-compatible proxy (development) behind one small port | Development ran through a local proxy; reviewers run the SDK path |
@@ -74,11 +75,13 @@ is an eval case.
 
 ## Evals
 
-60 labelled tickets, **dev 40 / test 20** (tune on dev, report test). Deterministic metrics:
+60 labelled tickets at first (dev 40 / test 20), grown to **100: dev 62 / test 38**
+([ADR-021](decisions/ADR-021-eval-set-v2-and-business-scorecard.md)); tune on dev, report test. Deterministic metrics:
 classification accuracy, **hard-rule violations (must be 0)**, routing recall for complaint/KYC (target
 100%), abstain precision/recall, citation validity, latency, cost per ticket — with Wilson intervals,
 because n is small. LLM-as-judge (Opus 5.5, calibrated on hand-graded cases) only for draft quality.
 
 ## Out of scope for the timebox
 
-Helpdesk integration, queue, web UI, retrieval implementation — designed in [`PHASE2.md`](PHASE2.md).
+Helpdesk integration, queue, retrieval implementation — designed in [`PHASE2.md`](PHASE2.md). The demo
+page is not the agents' UI: in production drafts go to the helpdesk as internal notes.

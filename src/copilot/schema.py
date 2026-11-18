@@ -168,6 +168,9 @@ class CopilotResult(BaseModel):
     draft: str | None
     citations: list[Citation]
     route: Route
+    source_pages: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Help-page URLs behind each cited section id: the pages the draft relies on.")
     keyword_flags: list[Flag]
     validation: ValidationReport
     meta: Meta | None
