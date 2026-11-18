@@ -32,8 +32,6 @@ class Outcome:
     usd_per_ticket: float
     violations: str
     correct: str
-    queue: str
-    high_urgency: str
 
     def monthly(self, tickets: int) -> float:
         """Token cost per month at this volume."""
@@ -54,8 +52,6 @@ def evaluate(cfg: dict[str, Any], model: str, summary: dict[str, Any]) -> Outcom
         usd_per_ticket=llm_cost_per_ticket(summary, cfg["llm"]["cache_hit_rate"]),
         violations=f"{summary['hard_rule_violations']}/{summary['drafts_judged']}",
         correct=str(summary["correct_outcome"]).split(" (")[0],
-        queue=str(summary["queue_accuracy"]).split(" (")[0],
-        high_urgency=str(summary["high_urgency_recall"]).split(" (")[0],
     )
 
 
@@ -69,134 +65,65 @@ def break_even_seconds(usd_per_month: float, tickets: int, usd_per_hour: float) 
     return usd_per_month / tickets / (usd_per_hour / 3600)
 
 
-def _break_even_section(cfg: dict[str, Any], best: Outcome, tickets: int) -> list[str]:
-    rates: list[float] = cfg["break_even"]["operator_usd_per_hour"]
-    upkeep: float = cfg["break_even"]["upkeep_usd_per_month"]
-    tokens = best.monthly(tickets)
-
-    def row(label: str, usd: float) -> str:
-        cells = " | ".join(f"{break_even_seconds(usd, tickets, r):.0f} s" for r in rates)
-        return f"| {label} | {cells} |"
-
-    return [
-        f"## Break-even: operator seconds a draft must save per ticket ({tickets:,}/month)",
-        "",
-        "| Cost to cover | " + " | ".join(f"operator ${r:g}/h" for r in rates) + " |",
-        "|---|" + "---|" * len(rates),
-        row(f"Sonnet tokens (${tokens:,.0f}/month)", tokens),
-        row(f"+ ${upkeep:,.0f}/month engineering upkeep", tokens + upkeep),
-        "",
-        "Tokens are covered by a few seconds per ticket at any rate; engineering upkeep sets the "
-        "real bar. Shadow mode measures the time a draft actually saves before any customer "
-        "sees one.",
-        "",
-    ]
-
-
-def _opus_note(outcomes: list[Outcome], best: Outcome) -> str:
-    """Opus against the recommendation: price ratio and the gap in correct outcomes."""
-    opus = next((o for o in outcomes if o.model == "claude-opus-5-5"), None)
-    if opus is None:
-        return ""
-    ratio = opus.usd_per_ticket / best.usd_per_ticket
-    gap = int(opus.correct.split("/")[0]) - int(best.correct.split("/")[0])
-    if gap <= 0:
-        return f"Opus costs {ratio:.1f}× as much for no gain ({opus.correct})."
-    return (f"Opus costs {ratio:.1f}× as much and handled {opus.correct} on this run: {gap} more "
-            "tickets, within run-to-run noise at this n (see EVAL_RESULTS.md).")
-
-
 def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
-    """The one-page markdown."""
+    """The one-page markdown: verdict first, then the two tables it rests on."""
     outcomes = [evaluate(cfg, m, summaries[m]) for m in cfg["configs"]]
     best = next(o for o in outcomes if o.model == "claude-sonnet-5-5")
-    volumes: list[int] = cfg["volumes"]
-    base = volumes[0]
+    tickets: int = cfg["volumes"][0]
     weeks = cfg["rollout"]["shadow_weeks"]
     rates: list[float] = cfg["break_even"]["operator_usd_per_hour"]
     mid_rate = rates[len(rates) // 2]
     upkeep: float = cfg["break_even"]["upkeep_usd_per_month"]
+    tokens = best.monthly(tickets)
+
+    def seconds(usd: float, rate: float) -> str:
+        return f"{break_even_seconds(usd, tickets, rate):.0f} s"
 
     lines = [
-        "# Business case — one page",
+        "# Business case",
         "",
-        f"**Question:** is the co-pilot worth running at ~{base:,} tickets/month, and with "
-        "which configuration?",
+        f"**Is the co-pilot worth running at ~{tickets:,} tickets/month, and with which "
+        "configuration?**",
         "",
-        f"**Verdict: yes, on Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`, cached prefix), "
-        "going live through shadow mode. It pays for its tokens if a draft saves an operator "
-        f"~{break_even_seconds(best.monthly(base), base, mid_rate):.0f} seconds per ticket "
-        f"(at ${mid_rate:g}/hour); with ${upkeep:,.0f}/month of engineering upkeep the bar is "
-        f"~{break_even_seconds(best.monthly(base) + upkeep, base, mid_rate):.0f} seconds. Go "
-        "to assist mode once shadow mode shows drafts saving more than that with zero "
-        "hard-rule violations.",
+        f"**Yes: Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`), rolled out through {weeks} "
+        "weeks of shadow mode.",
         "",
-        f"**Cost:** **≈ ${best.monthly(base):,.0f}/month** in tokens at {base:,} tickets "
-        f"(${best.usd_per_ticket:.4f} per ticket). "
-        f"It handles {best.correct} tickets correctly with zero hard-rule violations — the only "
-        f"model at zero under every prompt version and eval set. {_opus_note(outcomes, best)} "
-        "Haiku and DeepSeek are faster and cheaper but break hard rules and handle fewer tickets "
-        "correctly.",
+        f"- **Cost:** ≈ ${tokens:,.0f}/month in tokens (${best.usd_per_ticket:.4f} per ticket).",
+        f"- **Pays off** if a draft saves an operator ~{seconds(tokens, mid_rate)} per ticket "
+        f"at ${mid_rate:g}/hour, or ~{seconds(tokens + upkeep, mid_rate)} counting "
+        f"${upkeep:,.0f}/month of engineering upkeep.",
+        f"- **Quality:** {best.correct} tickets handled correctly, {best.violations} hard-rule "
+        "violations.",
         "",
-        *_cheaper_provider_note(outcomes, best, base),
-        *_break_even_section(cfg, best, base),
-        f"## Running cost by model and volume (eval: {_n(summaries)} tickets)",
+        f"## Why Sonnet (eval: {_n(summaries)} tickets)",
         "",
-        "| | Correct outcome | Hard-rule violations | Queue acc. | High-urgency recall | "
-        "$/ticket | "
-        + " | ".join(f"$/month @ {v // 1000}k" for v in volumes) + " |",
-        "|---|---|---|---|---|---|" + "---|" * len(volumes),
-    ]
-    for o in outcomes:
-        cells = " | ".join(f"${o.monthly(v):,.0f}" for v in volumes)
-        lines.append(f"| {o.model} | {o.correct} | {o.violations} | {o.queue} | {o.high_urgency} | "
-                     f"${o.usd_per_ticket:.4f} | {cells} |")
-    lines += [
+        f"| Model | Correct outcome | Hard-rule violations | $/month @ {tickets // 1000}k |",
+        "|---|---|---|---|",
+        *(f"| {o.model} | {o.correct} | {o.violations} | ${o.monthly(tickets):,.0f} |"
+          for o in outcomes),
         "",
-        "Cost grows linearly with volume: there is no per-seat or fixed licence part. Token "
-        "counts and their spread per language are in [COST_MATRIX.md](COST_MATRIX.md).",
+        "Haiku and DeepSeek save under $100 a month but break hard rules. Opus is as safe as "
+        "Sonnet and costs twice as much for a gain within run-to-run noise "
+        "([EVAL_RESULTS.md](EVAL_RESULTS.md)).",
         "",
-        f"## Transition: {weeks} weeks of shadow mode",
+        "## Break-even: operator seconds a draft must save per ticket",
         "",
-        "Drafts are generated for every real ticket but not shown; operators work as usual "
-        "([ADR-016](decisions/ADR-016-shadow-mode-rollout.md)). The system costs the full token "
-        f"price with no operator time saved yet: ≈ **${shadow_cost(best, base, weeks):,.0f}** "
-        f"for Sonnet at {base:,} tickets/month. Go to assist mode if hard-rule violations stay "
-        "at 0 on reviewed samples.",
+        "| Cost to cover | " + " | ".join(f"${r:g}/h" for r in rates) + " |",
+        "|---|" + "---|" * len(rates),
+        "| Tokens | " + " | ".join(seconds(tokens, r) for r in rates) + " |",
+        f"| Tokens + ${upkeep:,.0f}/month upkeep | "
+        + " | ".join(seconds(tokens + upkeep, r) for r in rates) + " |",
         "",
-        "## What is in the number, and what is not",
+        "## Not included",
         "",
-        f"- In: eval token counts × list prices (`configs/prices.yaml`), "
-        f"{cfg['llm']['cache_hit_rate']:.0%} cache hits on the rules + KB prefix, retries "
-        "included.",
-        "- Not in: hosting (one small container) and an estimate of operator savings; upkeep "
-        "only as the round unit above. Savings need Valetax's operator cost per hour and "
-        "handling time per ticket, then the shadow-mode measurements (accepted / edited / "
-        "discarded drafts, handling time before and after).",
+        "Hosting and an estimate of operator savings: that needs Valetax's handling time and "
+        f"operator cost, measured in shadow mode (≈ ${shadow_cost(best, tickets, weeks):,.0f} "
+        "of tokens). Larger volumes: [COST_MATRIX.md](COST_MATRIX.md), [PHASE2.md](PHASE2.md).",
         "",
         "_Generated by `uv run copilot business-case` from `business_case.yaml` and "
         "`reports/`._",
     ]
     return "\n".join(lines) + "\n"
-
-
-def _cheaper_provider_note(outcomes: list[Outcome], best: Outcome, tickets: int) -> list[str]:
-    """Why a much cheaper non-Claude model still does not win."""
-    other = next((o for o in outcomes if o.model.startswith("deepseek-")), None)
-    if other is None:
-        return []
-    saving = best.monthly(tickets) - other.monthly(tickets)
-    return [
-        f"DeepSeek Flash ({other.model}) costs ${other.monthly(tickets):,.0f} instead of "
-        f"${best.monthly(tickets):,.0f} a month in tokens: a saving of ${saving:,.0f}/month. "
-        f"Against that: {other.violations} judged drafts break a hard rule where Sonnet has "
-        f"{best.violations.split('/')[0]}, {other.correct} tickets handled correctly against "
-        f"{best.correct}, larger "
-        "run-to-run variance, and customer tickets sent to a new processor in another "
-        "jurisdiction (a compliance review, not a code change). Not worth it at this volume; "
-        "worth re-testing if volume grows 10×.",
-        "",
-    ]
 
 
 def _n(summaries: dict[str, dict[str, Any]]) -> int:
