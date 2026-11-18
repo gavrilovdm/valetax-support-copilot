@@ -62,6 +62,19 @@ def shadow_cost(outcome: Outcome, tickets_per_month: int, weeks: float) -> float
     return outcome.monthly(tickets_per_month) * weeks / WEEKS_PER_MONTH
 
 
+def _opus_note(outcomes: list[Outcome], best: Outcome) -> str:
+    """Opus against the recommendation: price ratio and the gap in correct outcomes."""
+    opus = next((o for o in outcomes if o.model == "claude-opus-5-5"), None)
+    if opus is None:
+        return ""
+    ratio = opus.usd_per_ticket / best.usd_per_ticket
+    gap = int(opus.correct.split("/")[0]) - int(best.correct.split("/")[0])
+    if gap <= 0:
+        return f"Opus costs {ratio:.1f}× as much for no gain ({opus.correct})."
+    return (f"Opus costs {ratio:.1f}× as much and handled {opus.correct} on this run: {gap} more "
+            "tickets, within run-to-run noise at this n (see EVAL_RESULTS.md).")
+
+
 def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
     """The one-page markdown."""
     outcomes = [evaluate(cfg, m, summaries[m]) for m in cfg["configs"]]
@@ -80,9 +93,9 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         f"**≈ ${best.monthly(base):,.0f}/month** in tokens at {base:,} tickets "
         f"(${best.usd_per_ticket:.4f} per ticket). "
         f"It handles {best.correct} tickets correctly with zero hard-rule violations — the only "
-        "model at zero under every prompt version and eval set; Opus costs twice as much for no "
-        "measurable gain. Haiku and DeepSeek are faster and cheaper but break hard rules and "
-        "handle fewer tickets correctly.",
+        f"model at zero under every prompt version and eval set. {_opus_note(outcomes, best)} "
+        "Haiku and DeepSeek are faster and cheaper but break hard rules and handle fewer tickets "
+        "correctly.",
         "",
         *_cheaper_provider_note(outcomes, best, base),
         f"## Running cost by model and volume (eval: {_n(summaries)} tickets)",

@@ -10,10 +10,10 @@ itself. Built as a take-home for Valetax, with an eval harness and a one-page bu
 | | |
 |---|---|
 | Recommended configuration | **Claude Sonnet 5.5**, prompt `triage_v3`, cached rules+KB prefix |
-| Correct outcome (100 tickets: right queue, answered or held back, no rule broken) | **94 / 100** · Opus 94 · Haiku 89 · DeepSeek Flash 87 |
-| Hard-rule violations (judged drafts) | **0 / 79** · Opus 2/82 · Haiku 2/81 · DeepSeek Flash 4/83 |
+| Correct outcome (100 tickets: right queue, answered or held back, no rule broken) | **96 / 100** · Opus 99 · Haiku 92 · DeepSeek Flash 90 |
+| Hard-rule violations (judged drafts) | **0 / 82** · Opus 0/82 · Haiku 3/83 · DeepSeek Flash 3/83 |
 | Complaint / KYC tickets sent to a human | **16 / 16** (every model) |
-| Cost per ticket (cached) · latency p50 | ≈ $0.006 · 4.6 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
+| Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.7 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
 | Running cost at 10k tickets/month | **≈ $84/month in tokens (Sonnet 5.5)**; operator savings not estimated |
 
 Details: [eval results](docs/EVAL_RESULTS.md) · [business case](docs/BUSINESS_CASE.md) ·
@@ -52,7 +52,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 297 tests, no network, no keys
+uv run pytest                      # 305 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl

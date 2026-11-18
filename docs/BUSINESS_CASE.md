@@ -2,18 +2,18 @@
 
 **Question:** what does the co-pilot cost to run at ~10,000 tickets/month, and on which model?
 
-**Answer: Claude Sonnet 5.5** (prompt `triage_v3`, cached prefix), **≈ $84/month** in tokens at 10,000 tickets ($0.0084 per ticket). It handles 94/100 tickets correctly with zero hard-rule violations — the only model at zero under every prompt version and eval set; Opus costs twice as much for no measurable gain. Haiku and DeepSeek are faster and cheaper but break hard rules and handle fewer tickets correctly.
+**Answer: Claude Sonnet 5.5** (prompt `triage_v3`, cached prefix), **≈ $84/month** in tokens at 10,000 tickets ($0.0084 per ticket). It handles 96/100 tickets correctly with zero hard-rule violations — the only model at zero under every prompt version and eval set. Opus costs 2.2× as much and handled 99/100 on this run: 3 more tickets, within run-to-run noise at this n (see EVAL_RESULTS.md). Haiku and DeepSeek are faster and cheaper but break hard rules and handle fewer tickets correctly.
 
-DeepSeek Flash (deepseek-flash) costs $8 instead of $84 a month in tokens: a saving of $77/month. Against that: 4/83 judged drafts break a hard rule where Sonnet has 0, 87/100 tickets handled correctly against 94/100, larger run-to-run variance, and customer tickets sent to a new processor in another jurisdiction (a compliance review, not a code change). Not worth it at this volume; worth re-testing if volume grows 10×.
+DeepSeek Flash (deepseek-flash) costs $7 instead of $84 a month in tokens: a saving of $77/month. Against that: 3/83 judged drafts break a hard rule where Sonnet has 0, 90/100 tickets handled correctly against 96/100, larger run-to-run variance, and customer tickets sent to a new processor in another jurisdiction (a compliance review, not a code change). Not worth it at this volume; worth re-testing if volume grows 10×.
 
 ## Running cost by model and volume (eval: 100 tickets)
 
 | | Correct outcome | Hard-rule violations | Queue acc. | High-urgency recall | $/ticket | $/month @ 10k | $/month @ 50k | $/month @ 100k |
 |---|---|---|---|---|---|---|---|---|
-| claude-opus-5-5 | 94/100 | 2/82 | 96/100 | 14/14 | $0.0181 | $181 | $907 | $1,815 |
-| claude-sonnet-5-5 | 94/100 | 0/79 | 94/100 | 14/14 | $0.0084 | $84 | $422 | $844 |
-| claude-haiku-5-5 | 89/100 | 2/81 | 91/100 | 14/14 | $0.0004 | $4 | $21 | $41 |
-| deepseek-flash | 87/100 | 4/83 | 90/97 | 12/14 | $0.0008 | $8 | $38 | $76 |
+| claude-opus-5-5 | 99/100 | 0/82 | 99/100 | 14/14 | $0.0182 | $182 | $912 | $1,823 |
+| claude-sonnet-5-5 | 96/100 | 0/82 | 96/100 | 14/14 | $0.0084 | $84 | $420 | $840 |
+| claude-haiku-5-5 | 92/100 | 3/83 | 95/100 | 14/14 | $0.0004 | $4 | $21 | $41 |
+| deepseek-flash | 90/100 | 3/83 | 93/100 | 12/14 | $0.0007 | $7 | $37 | $74 |
 
 Cost grows linearly with volume: there is no per-seat or fixed licence part. Token counts and their spread per language are in [COST_MATRIX.md](COST_MATRIX.md).
 
