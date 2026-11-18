@@ -1,7 +1,6 @@
 from typing import Any
 
 from copilot.business_case import (
-    _cheaper_provider_note,
     break_even_seconds,
     evaluate,
     render,
@@ -34,15 +33,6 @@ def test_shadow_mode_costs_the_tokens_of_its_weeks() -> None:
     assert round(shadow_cost(o, 1000, 2), 2) == round(12 * 2 * 12 / 52, 2)
 
 
-def test_cheaper_provider_note_states_the_monthly_saving() -> None:
-    sonnet = evaluate(CFG, "claude-sonnet-5-5", SUMMARY)
-    cheap = evaluate(CFG, "deepseek-flash", CHEAP)
-    note = _cheaper_provider_note([sonnet, cheap], sonnet, 1000)[0]
-    # 1000 tickets × ($0.012 − $0.001) = $11
-    assert "saving of $11/month" in note
-    assert _cheaper_provider_note([sonnet], sonnet, 1000) == []
-
-
 def test_break_even_is_cost_over_operator_time_by_hand() -> None:
     # $84/month over 10,000 tickets = $0.0084/ticket; at $10/h an operator second is $1/360
     assert round(break_even_seconds(84, 10_000, 10), 2) == round(0.0084 * 360, 2)
@@ -50,9 +40,8 @@ def test_break_even_is_cost_over_operator_time_by_hand() -> None:
 
 def test_page_gives_a_verdict_and_a_break_even_but_no_savings_estimate() -> None:
     page = render(CFG, {"claude-sonnet-5-5": SUMMARY, "deepseek-flash": CHEAP})
-    assert "$/month @ 10k" in page and "$120" in page
-    assert "is the co-pilot worth running" in page and "**Verdict: yes" in page
+    assert "worth running" in page and "**Yes: Claude Sonnet 5.5**" in page
     # Sonnet at 1,000 tickets: $12/month → $0.012/ticket → 4.32 s at $10/h
-    assert "~4 seconds per ticket" in page
+    assert "≈ $12/month" in page and "~4 s per ticket" in page
     for word in ("net value", "payback", "agent-hours"):
         assert word not in page.lower()
