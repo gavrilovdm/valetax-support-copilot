@@ -23,16 +23,31 @@ Details: [eval results](docs/EVAL_RESULTS.md) · [business case](docs/BUSINESS_C
 
 ## How it works
 
+```mermaid
+flowchart TD
+    subgraph IN["Entry points"]
+        CLI["CLI: triage / run"]
+        WEB["Demo page<br/>password gate"]
+        HD["Helpdesk webhook<br/>(Phase 2)"]
+    end
+
+    IN --> PII["1 · Redact PII<br/>cards, IBANs, emails, phones<br/>(restored in the draft)"]
+    PII --> NET["2 · Keyword net<br/>backstop flags, several languages"]
+    NET --> LLM["3 · One LLM call, structured output<br/>classification · flags · draft or abstain · citations"]
+    KB[("KB snapshot<br/>4 help pages → sections")] -. "whole KB in a<br/>cached prefix" .-> LLM
+    LLM --> VAL{"4 · Validate the draft<br/>quotes verbatim? numbers cited?<br/>advice language? known KB errors?"}
+    VAL -- "passes" --> ROUTE{"5 · Route by rule table<br/>model flags ∪ net flags"}
+    VAL -- "fails: draft removed" --> ROUTE
+    ROUTE --> A["assist<br/>agent edits and sends"]
+    ROUTE --> P["priority<br/>funds missing, account blocked"]
+    ROUTE --> C["complaints / compliance<br/>draft without a ruling"]
+    ROUTE --> H["general (human)<br/>no draft: abstain, injection, LLM down"]
+    A & P & C & H --> LOG[("Audit log, JSONL<br/>versions, flags, reasons")]
 ```
-ticket ─► redact PII ─► keyword net ─► LLM: one structured call ─► validate ─► route ─► restore PII
-              │              │          (classification, flags,       │           │
-              │              │           draft or abstain, citations) │           │
-              ▼              ▼                                        ▼           ▼
-        cards/IBANs     backstop flags                 verbatim quotes?    rule table:
-        never leave                                    numbers grounded?   assist / priority /
-        masked                                         advice language?    complaints / compliance /
-                                                                           general (human)
-```
+
+**Never sent automatically:** every outcome lands with a person. Offline around it: `kb ingest`
+builds the snapshot from valetax.com, and `eval` runs the labelled tickets through the same
+pipeline with an LLM judge for the drafts.
 
 **The model proposes, code disposes.** The LLM supplies signals and a draft; deterministic,
 unit-tested code decides what an agent sees and where the ticket goes:
