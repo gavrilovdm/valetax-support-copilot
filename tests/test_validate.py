@@ -83,3 +83,36 @@ def test_injection_withholds_draft(kb: KnowledgeBase) -> None:
 def test_list_markers_and_placeholders_are_not_facts() -> None:
     assert numbers_in("1. Log in\n2. Click Deposit\nCard [CARD_1]") == set()
     assert numbers_in("up to 1:2000 within 48 hours") == {"1", "2000", "48"}
+
+
+DEPOSIT_TIME = "faq.how-long-does-it-take-for-deposited-funds-to-be-credited-to-my-balance"
+
+
+def test_copied_withdrawal_steps_are_not_citable(kb: KnowledgeBase) -> None:
+    # G1: withdraw.steps is the deposit procedure; presenting it as withdrawal steps is wrong.
+    t = triage(draft="Log in to your Member Area and select your preferred payment channel.",
+               citations=[{"section_id": "withdraw.steps",
+                           "evidence_quote": "select your preferred payment channel"}],
+               category="withdrawal")
+    draft, citations, report = validate(t, kb, "How do I withdraw?", set())
+    assert draft is None and not citations
+    assert "G1" in report.dropped_citations[0].reason
+    assert report.kb_error_hits == ["G1: the withdraw page repeats the deposit steps"]
+
+
+def test_instant_promise_removes_draft_in_any_language(kb: KnowledgeBase) -> None:
+    quote = {"section_id": DEPOSIT_TIME, "evidence_quote": "view your updated account balance"}
+    for text in ("Deposits are instant, you will see the balance within 60 minutes.",
+                 "Депозиты зачисляются мгновенно, баланс обновится в течение 60 минут."):
+        t = triage(draft=text, citations=[quote])
+        draft, _, report = validate(t, kb, "Where is my deposit?", set())
+        assert draft is None and report.draft_removed_reason
+        assert "G4" in report.draft_removed_reason
+
+
+def test_sixty_minutes_without_instant_passes(kb: KnowledgeBase) -> None:
+    t = triage(draft="Your updated balance should be visible within 60 minutes.",
+               citations=[{"section_id": DEPOSIT_TIME,
+                           "evidence_quote": "updated account balance within 60 minutes"}])
+    draft, _, report = validate(t, kb, "Where is my deposit?", set())
+    assert draft is not None and not report.kb_error_hits

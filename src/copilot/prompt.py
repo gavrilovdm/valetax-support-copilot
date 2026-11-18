@@ -13,7 +13,7 @@ from pathlib import Path
 from copilot.kb import KnowledgeBase
 
 PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
-DEFAULT_VERSION = "triage_v2"  # frozen after dev iteration, see docs/EVAL_RESULTS.md
+DEFAULT_VERSION = "triage_v3"  # frozen after dev iteration, see docs/EVAL_RESULTS.md
 
 
 @dataclass(frozen=True)

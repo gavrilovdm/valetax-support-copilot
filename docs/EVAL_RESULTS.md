@@ -1,13 +1,16 @@
 # Eval results
 
-**Recommendation: Claude Sonnet 5.5 with prompt `triage_v2`.** It ties Opus 5.5 on every safety
-metric (0 hard-rule violations, 100% complaint/KYC routing, 100% queue accuracy over 60 tickets),
-at half the cost and ~30% lower latency. Haiku 5.5 is 20× cheaper again but let two unsupported
-claims through and missed 3 of 8 high-urgency tickets. At 10k tickets/month the price gap between
-Sonnet and Haiku is ~$55/month, so it does not buy that risk ([business case](BUSINESS_CASE.md)).
+**Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** It is the only model with zero
+hard-rule violations under both prompt versions (v2: 0/50, v3: 0/49 judged drafts), with 100%
+complaint/KYC routing and 59–60/60 queue accuracy. Opus 5.5 is as good at twice the cost. Haiku 5.5
+and DeepSeek Flash are 10–20× cheaper in tokens and come close under v3, but each let errors through
+on another run, and at 10k tickets/month the whole token bill of Sonnet is ~$80 — a price difference too small to
+outweigh one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
+[token and cost matrix](COST_MATRIX.md)).
 
-Raw numbers: [`reports/summary.md`](../reports/summary.md) (generated), per-case results in
-`reports/eval-<split>-<model>-cases.jsonl`.
+Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
+[`reports/summary-triage_v2.md`](../reports/summary-triage_v2.md) (generated), per-case results in
+`reports/eval-<split>-<model>-<prompt>-cases.jsonl`.
 
 ## Method
 
@@ -44,6 +47,31 @@ What the v1 failures were, and what fixed them:
 - Urgency disagreements were mostly **label noise** (see below), fixed by writing the definition
   down once and applying it to labels and prompt alike.
 
+### v3: known KB errors (dev, Sonnet 5.5, three runs; then frozen)
+
+v2 drafts repeated two errors of the source pages that the judge did not flag, because the words
+are in the KB: "deposits are **instant**" (G4) and the copied deposit steps presented as
+**withdrawal steps** (G1). New metric `model_kb_error_free`: the model's own draft, before the
+validator, avoids both. Under v2 it was 50/53 (Sonnet), 50/54 (Opus), 49/55 (Haiku) on 60 tickets.
+
+| Run | Change | Queue acc. | Answered | KB-error-free | High urgency | Violations |
+|---|---|---|---|---|---|---|
+| v2 (baseline) | — | 40/40 | 27/27 | 33/34 | 3/4 | 0 |
+| v3a | "Known problems in the KB" section (G1, G3, G4, G5, G6) | 36/40 | 24/27 | 34/34 | 2/4 | 0 |
+| v3b | + quotes ≥ 5 words and must contain every number in the draft | 38/40 | 26/27 | 33/34 | 2/4 | 0 |
+| **v3** | + a withdrawal pending > 24 h, or held by a compliance review, is `high` urgency | **39/40** | 26/27 | **36/36** | **4/4** | 0 |
+
+What v3a broke, and why: my own line "24 hours is when to contact support, not a processing time"
+made the model stop treating a 3-day pending withdrawal as overdue (wd-09); and two drafts quoted
+"6 months" in a 2-word quote, which the validator rightly dropped (acc-08, ver-03). The remaining
+miss, oos-01 ("which payment methods, do you accept USDT?"), now abstains instead of answering
+"instant, simple and secure funding methods" — the label expects a partial answer; I kept the
+label and the miss.
+
+The same errors are now also **enforced in code** (ADR-019): `withdraw.steps` is not citable and a
+draft that says "instant" is removed. The judge prompt lists the known errors too, so v3 verdicts
+come from a slightly stricter judge than v2's.
+
 ### Label corrections
 
 Reviewing dev failures showed my own labels were inconsistent. 17 cases changed; each follows a
@@ -61,7 +89,75 @@ rule written in the prompt/spec, not the model's answer:
   test "failure" where the model cited the better section).
 Every corrected case carries a `label_fix` field.
 
-## Results
+## Results with prompt v3 (four models)
+
+The test split was already used once for v2, so this is a second look at it, not a fresh held-out
+set; the prompt was tuned on dev only and run once on test per model.
+
+### Test (n=20)
+
+| | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | DeepSeek Flash |
+|---|---|---|---|---|
+| Hard-rule violations (judged drafts) | 0 / 17 | 0 / 17 | 0 / 17 | 0 / 17 |
+| Complaint/KYC → human · queue | 4/4 · 20/20 | 4/4 · 20/20 | 4/4 · 20/20 | 4/4 · 20/20 |
+| High-urgency recall | 4/4 | 4/4 | 4/4 | 4/4 |
+| KB-error-free drafts | 19/19 | 18/18 | 19/19 | 18/18 |
+| Judge grounded / tone / completeness | 5.00 / 4.88 / 4.71 | 5.00 / 4.76 / 4.76 | 4.76 / 4.88 / 4.29 | 4.82 / 4.82 / 4.59 |
+
+### All 60 tickets
+
+| | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | DeepSeek Flash |
+|---|---|---|---|---|
+| Hard-rule violations (judged drafts) | 1 / 50 | **0 / 49** | 0 / 51 | 1 / 50 |
+| Complaint/KYC → human | 10/10 | 10/10 | 10/10 | 10/10 |
+| Queue · category accuracy | 60/60 · 58/60 | 59/60 · 60/60 | 59/60 · 58/60 | 60/60 · 55/60 |
+| High-urgency recall | 8/8 | 8/8 | 8/8 | 8/8 |
+| Abstain recall · answered when answerable | 6/6 · 40/40 | 6/6 · 39/40 | 5/6 · 40/40 | 6/6 · 40/40 |
+| KB-error-free drafts (before validator) | 54/54 | 54/54 | 56/56 | 57/57 |
+| Drafts removed by the validator | 4 | 5 | 5 | 7 |
+| Judge grounded / tone / completeness | 4.92 / 4.96 / 4.78 | 5.00 / 4.86 / 4.78 | 4.86 / 4.82 / 4.55 | 4.84 / 4.80 / 4.64 |
+| Latency p50 / p95 | 4.8 s / 8.5 s | 3.2 s / 6.5 s | 2.1 s / 2.8 s | 2.3 s / 6.2 s |
+| Mean tokens in / out | 5,634 / 601 | 5,634 / 518 | 5,745 / 472 | 4,014 / 366 |
+| Cost per ticket, uncached / cached | $0.035 / $0.014 | $0.016 / $0.006 | $0.0008 / $0.0003 | $0.0016 / $0.0005 |
+
+The violations: Opus promised that "the support team will send the account-type details" (acc-06;
+the KB only links to a page); DeepSeek said the customer can track verification "in the Member
+Area" (ver-04). Both are invented procedures, the kind only the judge catches.
+
+v3 helped the weaker models most: Haiku went from 2/49 violations and 5/8 high-urgency recall
+(v2) to 0/51 and 8/8. At n=60 with one run per model, Sonnet, Haiku and DeepSeek are within noise
+of each other on v3 — see the variance note below before reading a ranking into it.
+
+### DeepSeek Flash (non-Claude comparison)
+
+Same client, same single-message prompt, thinking disabled (it rejects a forced tool call).
+
+- **Run-to-run variance is large.** Two v2 runs on the same 60 tickets gave 3 and 0 judged
+  violations (the first run: an invented "notified by email", a Member Area claim, and a yes to
+  "can I trade before verification", which is G6). One run per model is not enough to rank
+  models this close; shadow mode or ≥3 runs per config would be.
+- **The validator earns its keep here:** under v2 it removed 12 DeepSeek drafts (8 repeating KB
+  errors G1/G4) against 3 for Sonnet.
+- **A real bug it found:** DeepSeek twice returned tool arguments that were not valid JSON on
+  prompt-injection tickets. The client gave up on the first such answer (safe — the ticket was
+  escalated — but wasteful); it now retries with the parse error fed back, like a text answer.
+- Tokens: 30% fewer input and output tokens than Claude for the same work, mostly from its
+  tokenizer — see below.
+
+## Tokens: same prompt, different counts
+
+Full tables: [COST_MATRIX.md](COST_MATRIX.md) (`copilot token-probe`, `copilot cost-matrix`).
+
+- **Claude Opus, Sonnet and Haiku 5.5 share one tokenizer**: identical counts for every text.
+  Their differences are output length only (Opus writes 16% more than Sonnet, Haiku 9% less).
+- **DeepSeek needs 30–45% fewer tokens for the same text**: the v3 prompt prefix is 3,023 tokens
+  vs 4,435; English ticket text 22.8 vs 33.2 tokens per 100 characters; Arabic 43 vs 75.
+- **The gap grows outside English**: Claude spends 2.3× as many tokens per character on Arabic as
+  on English, 1.4× on Russian. A multilingual queue costs more per ticket than an English one.
+- Price per token still dominates: DeepSeek's tokens are ~7× cheaper than Sonnet's and it uses 30%
+  fewer, so ~10× cheaper per ticket.
+
+## Results with prompt v2 (three Claude models, first run)
 
 ### Held-out test (n=20)
 
@@ -76,7 +172,7 @@ Every corrected case carries a `label_fix` field.
 
 At n=20 the three are statistically indistinguishable; the full set separates them.
 
-### All 60 tickets
+### All 60 tickets (v2)
 
 Caveat: dev was used to tune the prompt with Sonnet, so this view slightly favours Sonnet.
 
@@ -126,18 +222,20 @@ I read 8 Sonnet test drafts next to the judge's verdicts. Agreement on 6. The tw
 are both **business rules the judge was not told**: dep-03 repeats "Deposits are instant" (KB gap
 G4 says quote only the 60-minute figure), and wd-05 paraphrases the copied deposit steps as
 withdrawal steps (G1), though it hedges that the final steps will be confirmed. The judge checks
-the general hard rules well; it does not know our gap-specific rules.
+the general hard rules well; it does not know our gap-specific rules. → Fixed in v3: the judge prompt lists
+the known KB errors, and the two rules are deterministic checks (`model_kb_error_free`).
 
 ## Known limits and next steps
 
-1. **Gap-specific assertions:** add deterministic checks per KB gap (e.g. G4: draft must not say
-   "instant"; G1: withdrawal drafts must not present `withdraw.steps` as instructions) and give the
-   judge the KB_GAPS table. Then a prompt v3 with a short "known KB issues" note — tuned on dev,
-   confirmed on a fresh test set.
+1. **One run per configuration.** DeepSeek's two v2 runs differed by 3 violations; model
+   rankings this close need ≥3 runs per config or, better, shadow mode on real tickets.
 2. **n is small.** 60 synthetic tickets bound the error rate loosely (0/50 violations → upper
    bound ~7%). Shadow mode on real tickets is the real eval (Phase 2).
 3. **Non-numeric invented facts** are caught only by the judge offline; in production that is the
    agent's review. Candidate: a cheap claim-checker pass for drafts that mention UI locations or
    procedures not in cited sections.
-4. The production backend (Anthropic SDK, cached) was not run live here; token counts come from
-   the proxy and caching is modelled.
+4. The production backend (Anthropic SDK, cached) was not run live here; Claude token counts come
+   from the proxy (which forces the tool call with an extra instruction) and caching is modelled.
+   DeepSeek reports real cache hits, which the measured cost uses.
+5. **The test split has now been seen twice** (v2 and v3). A fresh labelled set is needed before
+   the next prompt version is compared.

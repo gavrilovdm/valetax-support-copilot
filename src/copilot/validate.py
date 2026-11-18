@@ -3,7 +3,10 @@
 "Never invent policy, fees or timelines" is enforced here, not trusted to the prompt:
 - a citation counts only if its quote is really in the section it names;
 - every number in the draft must appear in a validly cited section or in the ticket itself;
-- recommendation language about trading removes the draft.
+- recommendation language about trading removes the draft;
+- known errors of the source pages (docs/KB_GAPS.md) cannot reach the customer: the copied
+  withdrawal steps (G1) are not citable, and a draft that promises "instant" deposits (G4) is
+  removed. The prompt warns the model about both; code makes sure.
 A draft that fails is removed, and the ticket goes to a human with the reason (route.py).
 """
 
@@ -15,6 +18,18 @@ import unicodedata
 from copilot.guardrails import advice_hits
 from copilot.kb import KnowledgeBase
 from copilot.schema import Citation, Coverage, DroppedCitation, Flag, TriageResult, ValidationReport
+
+# Known errors in the source KB. Listed by id so a KB refresh that fixes them is one line here.
+UNCITABLE_SECTIONS = {
+    "withdraw.steps": "G1: the withdraw page repeats the deposit steps",
+}
+KB_ERROR_PHRASES = {
+    # G4: "instant" is marketing wording (two intros, one FAQ) next to "within 60 minutes" and
+    # "contact support after 24 hours"; the concrete times are the facts.
+    "G4: promises 'instant' funding": re.compile(
+        r"\binstant(ly)?\b|\binstan\b|instantan|instantâne|instantáne|мгновенн|anında|فور[يًا]",
+        re.I),
+}
 
 MIN_QUOTE_CHARS = 8  # shorter quotes ("USD", "48") match almost anywhere and prove nothing
 
@@ -56,6 +71,9 @@ def check_citations(
         quote = _normalize(citation.evidence_quote)
         if section is None:
             dropped.append(DroppedCitation(citation=citation, reason="unknown section id"))
+        elif citation.section_id in UNCITABLE_SECTIONS:
+            dropped.append(DroppedCitation(citation=citation,
+                                           reason=UNCITABLE_SECTIONS[citation.section_id]))
         elif len(quote) < MIN_QUOTE_CHARS:
             dropped.append(DroppedCitation(citation=citation, reason="quote too short"))
         elif quote not in _normalize(section.text):
@@ -63,6 +81,14 @@ def check_citations(
         else:
             valid.append(citation)
     return valid, dropped
+
+
+def kb_error_hits(draft: str, citations: list[Citation]) -> list[str]:
+    """Known KB errors the draft repeats: a G1 citation or a G4 phrase."""
+    hits = [UNCITABLE_SECTIONS[c.section_id] for c in citations
+            if c.section_id in UNCITABLE_SECTIONS]
+    hits += [rule for rule, pattern in KB_ERROR_PHRASES.items() if pattern.search(draft)]
+    return sorted(set(hits))
 
 
 def validate(
@@ -82,12 +108,16 @@ def validate(
     allowed = numbers_in(cited_text) | numbers_in(ticket_text)
     report.unsupported_numbers = sorted(numbers_in(draft) - allowed)
     report.advice_hits = advice_hits(draft)
+    report.kb_error_hits = kb_error_hits(draft, triage.citations)
 
     needs_facts = triage.coverage is not Coverage.NONE or not (flags & NO_FACTS_NEEDED)
     if Flag.INJECTION_SUSPECTED in flags:
         report.draft_removed_reason = "possible prompt injection: draft withheld"
     elif report.advice_hits:
         report.draft_removed_reason = "draft reads as trading advice"
+    elif report.kb_error_hits:
+        report.draft_removed_reason = "draft repeats a known KB error: " + "; ".join(
+            report.kb_error_hits)
     elif report.unsupported_numbers:
         report.draft_removed_reason = (
             "numbers not found in cited sections: " + ", ".join(report.unsupported_numbers)

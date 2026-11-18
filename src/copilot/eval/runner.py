@@ -51,11 +51,16 @@ def run_eval(
     return summary, scores
 
 
+def report_stem(split: str, model: str, prompt_version: str) -> str:
+    """File stem of one run: every model x split x prompt version keeps its own results."""
+    return f"eval-{split}-{model}-{prompt_version}"
+
+
 def write_report(out_dir: Path, split: str, summary: dict[str, Any],
                  scores: list[CaseScore]) -> Path:
     """Write the summary JSON and the per-case JSONL; return the summary path."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"eval-{split}-{summary['model']}"
+    stem = report_stem(split, summary["model"], summary["prompt_version"])
     serializable = {k: (str(v) if isinstance(v, Rate) else v) for k, v in summary.items()}
     path = out_dir / f"{stem}.json"
     path.write_text(json.dumps(serializable, indent=2, ensure_ascii=False) + "\n")

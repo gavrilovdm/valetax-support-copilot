@@ -4,7 +4,7 @@ Status: accepted · 2026-11-17
 
 ## Context
 
-The business case rests on assumptions (AHT, accept rate, agent cost) that only real tickets can confirm.
+Operator savings depend on numbers (handling time, accept rate, operator cost) that only Valetax and real tickets can give, so the business case shows running cost only (ADR-020).
 
 ## Options
 
@@ -13,12 +13,12 @@ The business case rests on assumptions (AHT, accept rate, agent cost) that only 
 
 ## Decision
 
-Generate drafts for real tickets without showing them; compare with what agents sent and how they routed; go to assist mode if violations stay at 0 on reviewed samples and the accept+edit share clears break-even.
+Generate drafts for real tickets without showing them; compare with what agents sent and how they routed; go to assist mode if violations stay at 0 on reviewed samples. The two weeks cost full tokens with no time saved; the business case shows that amount.
 
 ## Consequences
 
 - No customer impact while measuring.
-- Turns the business case from assumptions into measurements.
+- Gives the inputs for an operator-savings estimate: accepted / edited / discarded drafts, handling time before and after.
 
 ## Evidence
 

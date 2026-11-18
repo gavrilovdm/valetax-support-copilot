@@ -1,13 +1,16 @@
 """LLM backends behind one small port, plus the parse-and-retry loop at the boundary.
 
-Two real backends (docs/decisions/ADR-017-llm-backends.md):
+Backends (docs/decisions/ADR-017-llm-backends.md, ADR-018-deepseek.md):
 - `AnthropicLLM` — the production path: official SDK, structured outputs, prompt caching of the
   rules+KB prefix, low effort, server-side refusal fallback.
-- `ProxyLLM` — an OpenAI-compatible `/chat/completions` endpoint in front of Claude, used during
-  development. Structured output via a tool call. Known limits of the proxy used here: no
-  `system` role reaches the model (so everything goes in one user message), no prompt caching,
-  and Opus/Sonnet 5.5 cannot be forced to call the tool, so the model may answer with text —
-  hence the retry loop in `structured_call`.
+- `OpenAICompatLLM` — any OpenAI-compatible `/chat/completions` endpoint, structured output via a
+  tool call. Two uses:
+  - `proxy`: a local proxy in front of Claude, used during development. Known limits: no `system`
+    role reaches the model (so everything goes in one user message), no prompt caching, and
+    Opus/Sonnet 5.5 cannot be forced to call the tool, so the model may answer with text — hence
+    the retry loop in `structured_call`;
+  - `deepseek`: the DeepSeek API, as a cheaper non-Claude comparison point. Same request shape
+    (one user message, identical prompt), so token counts are comparable across providers.
 
 Whatever the backend, the reply is parsed into `TriageResult` here, once. A ticket is never lost:
 after the last failed attempt the caller gets `LLMError` and escalates to a human.
@@ -35,8 +38,21 @@ class LLMError(RuntimeError):
     """The model did not answer, or answered with something we did not ask for."""
 
 
-class ToolCallMissing(LLMError):
+class RetryableReply(LLMError):
+    """The model answered, but not in the requested shape; the tokens were still billed."""
+
+    def __init__(self, message: str, usage: Usage | None = None) -> None:
+        """Keep the usage of the failed attempt so cost accounting includes retries."""
+        super().__init__(message)
+        self.usage = usage or Usage()
+
+
+class ToolCallMissing(RetryableReply):
     """The model answered with text instead of calling the tool."""
+
+
+class MalformedArguments(RetryableReply):
+    """The model called the tool, but its arguments are not valid JSON."""
 
 
 @dataclass(frozen=True)
@@ -100,8 +116,11 @@ def structured_call(
     for attempt in range(1, max_attempts + 1):
         try:
             reply = llm.complete(prefix, ticket_block(feedback), schema)
-        except ToolCallMissing as exc:
-            feedback = f"you answered with text instead of calling `{TOOL_NAME}` ({exc})"
+        except RetryableReply as exc:
+            total = _add(total, exc.usage)
+            feedback = (f"you answered with text instead of calling `{TOOL_NAME}` ({exc})"
+                        if isinstance(exc, ToolCallMissing) else
+                        f"your `{TOOL_NAME}` arguments were not valid JSON ({exc}); escape quotes")
             continue
         total = _add(total, reply.usage)
         try:
@@ -124,16 +143,17 @@ def _short(exc: ValidationError) -> str:
     return "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:5])
 
 
-class ProxyLLM:
-    """OpenAI-compatible endpoint in front of Claude (development backend)."""
+class OpenAICompatLLM:
+    """OpenAI-compatible `/chat/completions` endpoint: the Claude proxy or the DeepSeek API."""
 
-    backend = "proxy"
-
-    def __init__(self, client: httpx.Client, model: str, tool_name: str = TOOL_NAME) -> None:
+    def __init__(self, client: httpx.Client, model: str, tool_name: str = TOOL_NAME,
+                 backend: str = "proxy", extra_body: dict[str, Any] | None = None) -> None:
         """Take a configured HTTP client (tests pass one with a MockTransport)."""
         self._client = client
         self.model = model
+        self.backend = backend
         self._tool = tool_name
+        self._extra = extra_body or {}
 
     def complete(self, prefix: str, ticket_block: str, schema: dict[str, Any]) -> LLMReply:
         """One request; the answer is the arguments of the `submit_triage` tool call."""
@@ -148,22 +168,26 @@ class ProxyLLM:
                              "parameters": schema},
             }],
             "tool_choice": {"type": "function", "function": {"name": self._tool}},
+            **self._extra,
         }
         payload = self._post(body)
+        usage = openai_usage(payload.get("usage") or {})
         message = (payload.get("choices") or [{}])[0].get("message") or {}
         calls = message.get("tool_calls") or []
         if not calls:
-            raise ToolCallMissing(str(message.get("content") or "")[:200])
+            raise ToolCallMissing(str(message.get("content") or "")[:200], usage)
         try:
             data = json.loads(calls[0]["function"]["arguments"])
         except (KeyError, TypeError, json.JSONDecodeError) as exc:
-            raise LLMError(f"tool call arguments are not JSON: {exc}") from exc
-        usage = payload.get("usage") or {}
-        return LLMReply(
-            data=data,
-            usage=Usage(input_tokens=usage.get("prompt_tokens", 0),
-                        output_tokens=usage.get("completion_tokens", 0)),
-        )
+            raise MalformedArguments(f"tool call arguments are not JSON: {exc}", usage) from exc
+        return LLMReply(data=data, usage=usage)
+
+    def count_prompt_tokens(self, text: str) -> int:
+        """Prompt tokens of a request whose only message is `text` (tokenizer probe)."""
+        body = {"model": self.model, "max_tokens": 1,
+                "messages": [{"role": "user", "content": text}], **self._extra}
+        usage = openai_usage(self._post(body).get("usage") or {})
+        return usage.total_input
 
     def _post(self, body: dict[str, Any]) -> dict[str, Any]:
         for attempt in range(3):
@@ -182,6 +206,19 @@ class ProxyLLM:
         raise LLMError("unreachable")
 
 
+def openai_usage(usage: dict[str, Any]) -> Usage:
+    """Map OpenAI-style usage to ours.
+
+    `prompt_tokens` includes cached tokens; DeepSeek reports them as `prompt_cache_hit_tokens`
+    (OpenAI as `prompt_tokens_details.cached_tokens`). Like the Anthropic API, `input_tokens` here
+    counts only the uncached part, so `Usage.total_input` means the same on every backend.
+    """
+    details = usage.get("prompt_tokens_details") or {}
+    hit = usage.get("prompt_cache_hit_tokens", details.get("cached_tokens", 0)) or 0
+    return Usage(input_tokens=usage.get("prompt_tokens", 0) - hit, cache_read_tokens=hit,
+                 output_tokens=usage.get("completion_tokens", 0))
+
+
 def make_proxy_client(base_url: str, api_key: str, timeout: float = 120.0) -> httpx.Client:
     """HTTP client for the proxy. Generous timeout: Opus with thinking can take tens of seconds."""
     return httpx.Client(
@@ -193,12 +230,24 @@ def make_proxy_client(base_url: str, api_key: str, timeout: float = 120.0) -> ht
 
 
 def make_llm(backend: str, model: str, proxy_base_url: str = "", proxy_api_key: str = "",
-             tool_name: str = TOOL_NAME) -> StructuredLLM:
-    """Build the configured backend."""
+             tool_name: str = TOOL_NAME, deepseek_base_url: str = "https://api.deepseek.com",
+             deepseek_api_key: str = "") -> StructuredLLM:
+    """Build the backend for this model: `deepseek-*` always goes to DeepSeek, Claude models to
+    the configured backend (`anthropic` or `proxy`)."""
+    if model.startswith("deepseek-"):
+        if not deepseek_api_key:
+            raise LLMError("DEEPSEEK_API_KEY is not set (see .env.example)")
+        client = httpx.Client(base_url=deepseek_base_url, timeout=120.0,
+                              headers={"Authorization": f"Bearer {deepseek_api_key}"})
+        # Thinking mode (DeepSeek's default) rejects a forced tool_choice; the triage task is
+        # classification plus a short grounded draft, the same low-effort setting as Claude.
+        return OpenAICompatLLM(client, model, tool_name, backend="deepseek",
+                               extra_body={"thinking": {"type": "disabled"}})
     if backend == "proxy":
         if not proxy_api_key:
             raise LLMError("COPILOT_LLM_API_KEY is not set (see .env.example)")
-        return ProxyLLM(make_proxy_client(proxy_base_url, proxy_api_key), model, tool_name)
+        return OpenAICompatLLM(make_proxy_client(proxy_base_url, proxy_api_key), model,
+                               tool_name)
     if backend == "anthropic":
         import os
 

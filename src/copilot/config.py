@@ -28,6 +28,8 @@ class Settings:
     model: str
     proxy_base_url: str
     proxy_api_key: str
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_api_key: str = ""
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -38,4 +40,12 @@ class Settings:
             model=os.environ.get("COPILOT_MODEL", "claude-sonnet-5-5"),
             proxy_base_url=os.environ.get("COPILOT_LLM_BASE_URL", "http://127.0.0.1:8787/v1"),
             proxy_api_key=os.environ.get("COPILOT_LLM_API_KEY", ""),
+            deepseek_base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            deepseek_api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
         )
+
+    def llm_kwargs(self) -> dict[str, str]:
+        """Connection settings for `make_llm`."""
+        return {"proxy_base_url": self.proxy_base_url, "proxy_api_key": self.proxy_api_key,
+                "deepseek_base_url": self.deepseek_base_url,
+                "deepseek_api_key": self.deepseek_api_key}
