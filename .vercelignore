@@ -1,0 +1,13 @@
+# Upload only what the demo needs. Never .env, reports, runs or eval data.
+/*
+!/api
+!/src
+!/prompts
+!/public
+!/data
+/data/*
+!/data/kb
+/data/kb/raw
+!/vercel.json
+!/requirements.txt
+**/__pycache__

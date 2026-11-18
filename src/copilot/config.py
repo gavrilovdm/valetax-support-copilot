@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+KB_PATH = ROOT / "data" / "kb" / "kb.json"
 
 
 def _load_dotenv(path: Path) -> None:

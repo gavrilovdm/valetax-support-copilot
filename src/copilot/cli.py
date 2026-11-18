@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 import httpx
 import typer
@@ -13,10 +15,10 @@ from rich.table import Table
 
 from copilot import audit
 from copilot.config import ROOT, Settings
-from copilot.kb import PAGES, KnowledgeBase, build_kb, fetch_pages
+from copilot.kb import PAGES, build_kb, fetch_pages
 from copilot.llm import LLMError, make_llm
 from copilot.pipeline import Copilot, Ticket
-from copilot.prompt import DEFAULT_VERSION, load_prompt
+from copilot.prompt import DEFAULT_VERSION
 from copilot.schema import CopilotResult
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -54,14 +56,11 @@ def kb_ingest(
 
 def build_copilot(model: str | None = None, prompt_version: str = DEFAULT_VERSION) -> Copilot:
     """Wire the co-pilot from settings, the KB snapshot and a prompt version."""
-    settings = Settings.from_env()
-    kb = KnowledgeBase.load(KB_DIR / "kb.json")
     try:
-        llm = make_llm(settings.backend, model or settings.model, **settings.llm_kwargs())
+        return Copilot.from_env(model, prompt_version)
     except LLMError as exc:
         console.print(f"[red]configuration error:[/] {exc}")
         raise typer.Exit(code=2) from exc
-    return Copilot(llm=llm, kb=kb, prompt=load_prompt(kb, prompt_version))
 
 
 def _show(result: CopilotResult) -> None:
@@ -122,6 +121,26 @@ def run(
     if out:
         out.write_text("".join(json.dumps(r.model_dump(mode="json"), ensure_ascii=False) + "\n"
                                for r in results), encoding="utf-8")
+
+
+@app.command()
+def serve(port: int = typer.Option(8000, help="Port on 127.0.0.1.")) -> None:
+    """Serve the demo page and its API locally (the same app Vercel runs)."""
+    from wsgiref.simple_server import make_server
+
+    from copilot.web import StartResponse, app_from_env
+
+    api = app_from_env(secure_cookie=False)  # plain http on localhost
+    page = (ROOT / "public" / "index.html").read_bytes()
+
+    def local(environ: dict[str, Any], start_response: StartResponse) -> Iterable[bytes]:
+        if environ.get("PATH_INFO", "/").startswith("/api/"):
+            return api(environ, start_response)
+        start_response("200 OK", [("Content-Type", "text/html; charset=utf-8")])
+        return [page]
+
+    console.print(f"demo on http://127.0.0.1:{port}")
+    make_server("127.0.0.1", port, local).serve_forever()
 
 
 @app.command("eval")

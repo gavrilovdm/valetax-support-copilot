@@ -52,7 +52,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 305 tests, no network, no keys
+uv run pytest                      # 317 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl
@@ -61,7 +61,13 @@ uv run copilot eval-report && uv run copilot business-case     # rebuild reports
 uv run copilot token-probe --model deepseek-flash              # tokenizer: prefix, tokens/100 chars
 uv run copilot cost-matrix         # docs/COST_MATRIX.md from stored runs, no LLM calls
 uv run copilot kb ingest           # re-fetch the four help pages (or --offline)
+uv run copilot serve               # demo page on http://127.0.0.1:8000 (COPILOT_WEB_PASSWORD)
 ```
+
+**Web demo:** the same pipeline behind a password on Vercel: paste a ticket, see the route,
+classification, flags, the draft with its sources and what the validator removed. The password is
+shared on request; the page calls the LLM through the author's machine, so it is up only while
+that machine is ([ADR-023](docs/decisions/ADR-023-web-demo-behind-a-password.md)).
 
 `COPILOT_LLM_BACKEND=anthropic` (default) uses the official SDK: structured outputs, prompt
 caching of the rules+KB prefix, effort `low`, server-side refusal fallback.
@@ -88,8 +94,10 @@ Any `deepseek-*` model goes to the DeepSeek API (`DEEPSEEK_API_KEY`), whatever t
 ```
 src/copilot/   kb.py · pii.py · guardrails.py · validate.py · route.py   (deterministic)
                llm.py · prompt.py · pipeline.py · audit.py · cli.py      (model + wiring)
+               web.py (demo page API: password gate, triage endpoint)
                eval/ (dataset, metrics, judge, runner) · business_case.py
-prompts/       triage_v1.md (first), triage_v2.md (current, frozen after dev iteration)
+prompts/       triage_v1–v3.md (v3 current, frozen after dev iteration)
+api/ public/   Vercel function (api/index.py) and the demo page (public/index.html)
 data/          kb/ (raw HTML + kb.json snapshot) · eval/tickets.jsonl · samples/
 reports/       eval summaries and per-case results · summary.md
 docs/          SPEC · KB_GAPS · EVAL_RESULTS · BUSINESS_CASE · PHASE2 · BUILD_LOG · decisions/
