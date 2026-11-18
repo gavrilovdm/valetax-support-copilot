@@ -71,10 +71,34 @@ OUTPUT_ADVICE_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 
+# Phrases that contain a trigger word but say the opposite. They are blanked out before the net
+# runs, so the rest of the ticket is still checked ("no complaint, but this is a scam" still hits).
+# Each one comes from a look-alike ticket that every model routed correctly and the net overrode
+# (lk-01, lk-02, lk-07 in data/eval; ADR-022). Keep them narrow: a miss costs more than a hit.
+BENIGN_PHRASES: list[re.Pattern[str]] = [
+    # "I don't have any complaint", "not a complaint", "not complaining"
+    re.compile(r"\b(?:no|not an?|not any|without an?y?|(?:do not|don'?t) have (?:an?|any))"
+               r" complaints?\b|\bnot complaining\b", _I),
+    # someone else's account: "my friend's account was blocked by his bank"
+    re.compile(r"\b(friend|brother|sister|wife|husband|son|daughter|colleague|someone)'?s "
+               r"(trading )?account\b|\b(his|her|their) (trading )?account\b", _I),
+    # a question about the policy itself, not a hold on the customer's money
+    re.compile(r"\bwhat(?:'s| is| are) (?:your|the|valetax'?s?) "
+               r"(?:aml|anti-money laundering) polic(?:y|ies)\b", _I),
+]
+
+
+def _without_benign(text: str) -> str:
+    for pattern in BENIGN_PHRASES:
+        text = pattern.sub(" ", text)
+    return text
+
+
 def input_flags(ticket_text: str) -> set[Flag]:
     """Return every hard-rule flag whose patterns match the ticket."""
+    text = _without_benign(ticket_text)
     return {flag for flag, patterns in INPUT_PATTERNS.items()
-            if any(p.search(ticket_text) for p in patterns)}
+            if any(p.search(text) for p in patterns)}
 
 
 _NEGATION = re.compile(

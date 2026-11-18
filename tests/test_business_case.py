@@ -10,7 +10,7 @@ CFG: dict[str, Any] = {
 }
 SUMMARY = {"cost_per_ticket_cached": 0.01, "cost_per_ticket_uncached": 0.02,
            "hard_rule_violations": 0, "drafts_judged": 10, "queue_accuracy": "10/10 (100%)",
-           "high_urgency_recall": "2/2 (100%)"}
+           "high_urgency_recall": "2/2 (100%)", "correct_outcome": "9/10 (90%)", "n": 10}
 CHEAP = {**SUMMARY, "cost_per_ticket_cached": 0.001, "cost_per_ticket_uncached": 0.001}
 
 

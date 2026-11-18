@@ -18,6 +18,13 @@ from copilot.validate import kb_error_hits
 
 SPECIALIST = {Queue.COMPLAINTS, Queue.COMPLIANCE}
 
+# The checks a support lead would call "handled correctly": the ticket reached the right queue
+# with the right action, it was answered or held back as it should be, and the draft breaks no
+# hard rule. Classification fields (category, sentiment) are left out: a wrong label that still
+# lands in the right queue costs nothing.
+OUTCOME_CHECKS = ("no_error", "queue", "action", "specialist_routed", "high_urgency_caught",
+                  "abstained", "answered", "no_violation")
+
 
 @dataclass(frozen=True)
 class Rate:
@@ -63,6 +70,7 @@ def score_case(case: EvalCase, result: CopilotResult, verdict: Verdict | None) -
     s = CaseScore(case, result, verdict)
     if t is None:
         s.checks["no_error"] = False
+        s.checks["correct_outcome"] = False
         return s
     s.checks["no_error"] = True
     s.checks["category"] = t.category in case.category
@@ -88,6 +96,7 @@ def score_case(case: EvalCase, result: CopilotResult, verdict: Verdict | None) -
         s.checks["no_kb_error_raw"] = not kb_error_hits(t.draft, t.citations)
     if result.draft and verdict is not None:
         s.checks["no_violation"] = not verdict.violations
+    s.checks["correct_outcome"] = all(s.checks[k] for k in OUTCOME_CHECKS if k in s.checks)
     return s
 
 
@@ -95,6 +104,16 @@ def rate(scores: list[CaseScore], key: str) -> Rate:
     """Share of applicable cases where check `key` passed."""
     values = [s.checks[key] for s in scores if key in s.checks]
     return Rate(sum(values), len(values))
+
+
+def by_slice(scores: list[CaseScore], key: str = "correct_outcome") -> dict[str, Rate]:
+    """Pass rate of one check per slice (tag or derived group), largest slice first."""
+    groups: dict[str, list[CaseScore]] = {}
+    for s in scores:
+        for name in s.case.slices():
+            groups.setdefault(name, []).append(s)
+    rates = {name: rate(group, key) for name, group in groups.items()}
+    return dict(sorted(rates.items(), key=lambda kv: (-kv[1].n, kv[0])))
 
 
 def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: float
@@ -115,8 +134,13 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
                      and s.result.triage.urgency is Urgency.HIGH
                      and s.case.urgency is not Urgency.HIGH)
     mean_in, mean_out = statistics.mean(ins), statistics.mean(outs)
+    correct = rate(scores, "correct_outcome")
+    measured = statistics.mean([_measured(prices, m.usage) for m in metas] or [0.0])
     return {
         "n": len(scores),
+        "correct_outcome": correct,
+        "cost_per_correct_outcome": round(measured * len(scores) / correct.k, 6)
+        if correct.k else None,
         "errors": sum(1 for s in scores if s.result.error),
         "hard_rule_violations": sum(1 for s in scores if s.checks.get("no_violation") is False),
         "drafts_judged": rate(scores, "no_violation").n,
@@ -144,8 +168,7 @@ def summarize(scores: list[CaseScore], prices: dict[str, float], prefix_share: f
         "mean_output_tokens": round(mean_out),
         "max_output_tokens": max(outs),
         "mean_cache_read_tokens": round(_mean(m.usage.cache_read_tokens for m in metas) or 0),
-        "cost_per_ticket_measured": round(
-            statistics.mean([_measured(prices, m.usage) for m in metas] or [0.0]), 6),
+        "cost_per_ticket_measured": round(measured, 6),
         "cost_per_ticket_uncached": _cost(prices, mean_in, mean_out, cached=0),
         "cost_per_ticket_cached": _cost(prices, mean_in, mean_out, cached=mean_in * prefix_share),
     }

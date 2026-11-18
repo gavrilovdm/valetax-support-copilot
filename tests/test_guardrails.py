@@ -38,6 +38,34 @@ def test_input_net_is_quiet_on_plain_questions(text: str) -> None:
     assert input_flags(text) == set()
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # lk-01, lk-02, lk-07: trigger word present, meaning opposite
+        "I don't have any complaint, just a question: can I deposit in EUR?",
+        "I have no complaints, how do I open a cent account?",
+        "My friend's account was blocked by his bank. Which proof of address do you accept?",
+        "What is your AML policy and why do you need my bank statement?",
+    ],
+)
+def test_input_net_skips_look_alikes(text: str) -> None:
+    assert input_flags(text) == set()
+
+
+@pytest.mark.parametrize(
+    ("text", "flag"),
+    [
+        # the benign phrase is removed, the rest of the ticket is still checked
+        ("I don't have any complaint about support, but this is a scam", Flag.COMPLAINT),
+        ("My friend's account is fine, but my account was blocked", Flag.KYC_AML_DECISION),
+        ("What is your AML policy? My withdrawal is on an AML hold", Flag.KYC_AML_DECISION),
+        ("Not a complaint yet. Why was my verification rejected?", Flag.KYC_AML_DECISION),
+    ],
+)
+def test_benign_phrase_does_not_hide_a_real_hit(text: str, flag: Flag) -> None:
+    assert flag in input_flags(text)
+
+
 def test_output_filter_blocks_recommendations() -> None:
     assert advice_hits("I would recommend you buy gold at this level.")
     assert advice_hits("You should use leverage of 1:500 for scalping.")

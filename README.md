@@ -10,11 +10,11 @@ itself. Built as a take-home for Valetax, with an eval harness and a one-page bu
 | | |
 |---|---|
 | Recommended configuration | **Claude Sonnet 5.5**, prompt `triage_v3`, cached rules+KB prefix |
-| Hard-rule violations (60 tickets, judged drafts) | **0 / 49** (v2: 0/50) · Opus 1/50 · Haiku 0/51 · DeepSeek Flash 1/50 |
-| Complaint / KYC tickets sent to a human | **10 / 10** (every model) |
-| Queue accuracy · high-urgency recall | 59/60 · 8/8 |
-| Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.2 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
-| Running cost at 10k tickets/month | **≈ $80/month in tokens (Sonnet 5.5)**; operator savings not estimated |
+| Correct outcome (100 tickets: right queue, answered or held back, no rule broken) | **96 / 100** · Opus 99 · Haiku 92 · DeepSeek Flash 90 |
+| Hard-rule violations (judged drafts) | **0 / 82** · Opus 0/82 · Haiku 3/83 · DeepSeek Flash 3/83 |
+| Complaint / KYC tickets sent to a human | **16 / 16** (every model) |
+| Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.7 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
+| Running cost at 10k tickets/month | **≈ $84/month in tokens (Sonnet 5.5)**; operator savings not estimated |
 
 Details: [eval results](docs/EVAL_RESULTS.md) · [business case](docs/BUSINESS_CASE.md) ·
 [Phase 2](docs/PHASE2.md) · [decisions (ADRs)](docs/decisions/README.md) · [KB gaps](docs/KB_GAPS.md) ·
@@ -52,7 +52,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 92 tests, no network, no keys
+uv run pytest                      # 305 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl
@@ -72,7 +72,7 @@ Any `deepseek-*` model goes to the DeepSeek API (`DEEPSEEK_API_KEY`), whatever t
 ## What is real, what is mocked
 
 - **Real:** KB ingest from valetax.com, the whole pipeline, all hard-rule layers, the eval runs
-  (60 tickets × 4 models × 2 prompt versions + an Opus judge; DeepSeek through its own API), the
+  (60 tickets × 4 models × 2 prompt versions, then 100 tickets × 4 models with prompt v3, + an Opus judge; DeepSeek through its own API), the
   business-case arithmetic, the tokenizer probe.
 - **Ran through a proxy:** no Anthropic API key was available where this was built, so every
   measured number comes from an OpenAI-compatible proxy in front of the same Claude models
@@ -80,7 +80,7 @@ Any `deepseek-*` model goes to the DeepSeek API (`DEEPSEEK_API_KEY`), whatever t
   shape is pinned by unit tests but was **not** run live ([ADR-017](docs/decisions/ADR-017-llm-backends.md)).
 - **Not built (designed in [PHASE2.md](docs/PHASE2.md)):** helpdesk webhook/queue/worker,
   retrieval for a large KB, the feedback loop from agent edits, dashboards.
-- **Eval tickets are synthetic** (hand-written, labelled); n=60 bounds error rates loosely. Shadow
+- **Eval tickets are synthetic** (hand-written, labelled); n=100 bounds error rates loosely. Shadow
   mode on real tickets is the real eval.
 
 ## Repository map

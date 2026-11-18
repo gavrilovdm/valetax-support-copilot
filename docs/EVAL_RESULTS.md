@@ -1,11 +1,15 @@
 # Eval results
 
-**Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** It is the only model with zero
-hard-rule violations under both prompt versions (v2: 0/50, v3: 0/49 judged drafts), with 100%
-complaint/KYC routing and 59–60/60 queue accuracy. Opus 5.5 is as good at twice the cost. Haiku 5.5
-and DeepSeek Flash are 10–20× cheaper in tokens and come close under v3, but each let errors through
-on another run, and at 10k tickets/month the whole token bill of Sonnet is ~$80 — a price difference too small to
-outweigh one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
+**Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** On the 100-ticket set it handles
+96/100 tickets correctly with **0 hard-rule violations** — the only model at zero under every prompt
+version, both eval sets and every run — at ≈ $0.006 per ticket with caching and 3.7 s median
+latency. Opus 5.5 handled 99/100 on the latest run at 2.2× the cost and 1.5× the latency; the gap is
+3 tickets, not significant on paired tickets (McNemar p = 0.25), and the run before it had Opus at
+94 with 2 violations. Worth re-checking on real tickets in shadow mode, not a reason to switch now.
+Haiku 5.5 and DeepSeek Flash are 1.5× faster and 10–20× cheaper, but handle 92 and 90 tickets
+correctly and break hard rules 3 times each. At 10k tickets/month the whole token bill of Sonnet is
+~$84 — a price difference too small to outweigh one wrong answer to a broker's customer
+([business case](BUSINESS_CASE.md),
 [token and cost matrix](COST_MATRIX.md)).
 
 Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
@@ -14,7 +18,8 @@ Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
 
 ## Method
 
-- **Dataset:** 60 hand-labelled tickets ([`data/eval/tickets.jsonl`](../data/eval/tickets.jsonl)):
+- **Dataset:** 100 hand-labelled tickets: the 60 below (set v1) plus 40 harder ones (set v2, see
+  [Eval set v2](#eval-set-v2-100-tickets)). Set v1: ([`data/eval/tickets.jsonl`](../data/eval/tickets.jsonl)):
   deposits 10, withdrawals 10, account opening 8, verification 4, trading-advice traps 9 (direct,
   disguised, mixed with a real question, non-English), complaints 5, KYC/AML outcomes 5,
   out-of-KB 5, prompt injection 4; 13 non-English (ar, es, ru, id, pt, fr, tr); every KB gap
@@ -89,7 +94,95 @@ rule written in the prompt/spec, not the model's answer:
   test "failure" where the model cited the better section).
 Every corrected case carries a `label_fix` field.
 
-## Results with prompt v3 (four models)
+## Eval set v2 (100 tickets)
+
+Why: on the 60 tickets every model sat at the safety ceiling, so the eval could no longer tell a
+better system from a worse one. 40 tickets were added following Anthropic's
+[eval-design guidance](https://claude.dev/blog/automating-eval-design-and-hillclimbing/) (ADR-021):
+
+- **Mirror production:** languages of Valetax's markets the set lacked (ms, vi, ur, hi, fa),
+  Russian and Hindi in Latin letters, Indonesian slang mixed with English, typos, a frustrated
+  multi-day thread, a forwarded email, card and passport numbers.
+- **Hard for a stated reason:** each case has `why_hard`, written before any model ran on it;
+  nothing was picked because a model failed it.
+- **Should-not-fire cases:** 7 look-alikes where a hard rule must *not* fire.
+- **Unambiguous labels:** `tests/test_eval_dataset.py` checks all 100 labels against the routing
+  table and the KB. 18 of the 40 are held out in `test`; the prompt was not changed.
+
+### Business scorecard (all 100, prompt v3, keyword net with ADR-022 exclusions)
+
+`correct_outcome` = the right queue and action, answered or held back as labelled, high urgency
+caught, no hard-rule violation in the judged draft. One run per model; the run before the net
+change is in the next table for comparison.
+
+| | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | DeepSeek Flash |
+|---|---|---|---|---|
+| **Correct outcome** (95% CI) | 99/100 (95–100%) | **96/100 (90–98%)** | 92/100 (85–96%) | 90/100 (83–94%) |
+| Hard-rule violations (judged drafts) | 0 / 82 | **0 / 82** | 3 / 83 | 3 / 83 |
+| Latency p50 / p95 | 5.5 s / 9.2 s | 3.7 s / 7.0 s | 2.6 s / 4.1 s | 2.3 s / 4.0 s |
+| $ per ticket, cached (production) | $0.0140 | $0.0063 | $0.0003 | $0.0005 |
+| $ per correctly handled ticket, cached | $0.0142 | $0.0066 | $0.0003 | $0.0006 |
+| Held-out test (n=38): correct · violations | 38/38 · 0 | **37/38 · 0** | 35/38 · 1 | 34/38 · 1 |
+| *Previous run, net without exclusions* | *94/100 · 2* | *94/100 · 0* | *89/100 · 2* | *87/100 · 4* |
+
+**Paired comparison** (same tickets, McNemar exact test): Sonnet vs Opus 0 vs 3 tickets only one
+of them got right (p = 0.25); vs Haiku 5 vs 1 (p = 0.22); vs DeepSeek 8 vs 2 (p = 0.11). At n=100
+none of these gaps is significant on its own; the case against Haiku and DeepSeek rests on hard-rule
+violations, which are consistent across every run.
+
+Latency is measured through the development proxy, which adds overhead; the ranking holds, the
+absolute numbers are pessimistic. Claude tokens through the proxy are uncached; the cached cost
+applies the measured prefix share to Anthropic cache-read prices (DeepSeek reports real cache hits).
+
+### Correct outcome by slice (all 100)
+
+| Slice | n | Opus | Sonnet | Haiku | DeepSeek |
+|---|---|---|---|---|---|
+| Set v1 (the original 60) | 60 | 60 | 58 | 57 | 56 |
+| Set v2 (the new 40) | 40 | 39 | 38 | 35 | 34 |
+| Hard-rule tickets (complaint, KYC, advice, injection) | 32 | 32 | 32 | 32 | 30 |
+| Non-English | 24 | 24 | 24 | 24 | 23 |
+| **Look-alikes (rule must not fire)** | 7 | **6** (was 3) | **6** (was 3) | **4** (was 2) | **5** (was 3) |
+| Urgency boundaries | 6 | 6 | 6 | 5 | 5 |
+| Out of scope | 5 | 4 | 3 | 3 | 3 |
+| Planted numbers · multi-intent · PII · injection | 4 · 4 · 2 · 2 | all | all | all | 3 · 3 · 2 · 2 |
+
+The v2 tickets still separate the models (85–98% against 93–100% on v1); look-alikes and out of
+scope are where the headroom is.
+
+### What the new tickets found
+
+1. **The keyword net only over-escalates.** 4 of the 7 look-alikes fail on *every* model, and in
+   each case the model was right and the net overrode it: "I don't have any complaint" went to the
+   complaints queue, "my friend's account was blocked by his bank" and "what is your AML policy?"
+   to compliance. Over all 397 scored runs the net **never** caught a flag the model missed, and
+   raised 19 flags the model correctly did not. Its recall on its own was already measured as far
+   below the model's. The design choice "a false hit costs a human look" had a price: about 4%
+   of tickets sent to a specialist with nothing to decide. **Fixed narrowly (ADR-022):** the net
+   now skips negated complaints, someone else's account and questions about the AML policy, and
+   still escalates on everything else. On all 106 tickets it changed only lk-01, lk-02 and lk-07;
+   after the re-run those pass on every model (Haiku still fails lk-02, on a judged draft, not on
+   the net). lk-05 ("Is Valetax a scam?") stays escalated by choice. The bigger change — net-only
+   hits as a warning, not an escalation — removes the backstop for a model regression and is left
+   to the compliance owner.
+2. **Run-to-run noise is larger than one run shows.** The original 60 run twice gave 0 flips for
+   every Claude model. The full re-run after the net change, same prompt, shows flips beyond the
+   three net-fixed tickets: Opus 2 (both judge verdicts), Sonnet 3, Haiku 7, DeepSeek 12. So a
+   gap of 2–3 tickets between Claude models is noise at n=100; DeepSeek's per-ticket outcome is
+   not stable enough to rank from one run.
+3. **Partial answers to gap questions.** Sonnet abstains on some tickets where the KB covers part
+   of the question ("withdrawal to Skrill — how long?", "which payment methods, USDT?", "how long
+   do withdrawals take?"); which of them it abstains on changes between runs. Safe, but the
+   customer gets nothing from the draft; the rule "answer the part you can" is weaker in Sonnet
+   than in Opus. Next prompt version's target, tuned on dev only.
+4. **Planted numbers, multi-intent, PII, transliteration, injection in Russian and in forwarded
+   email:** handled by every model. The validator's number check did not remove the drafts that
+   corrected a customer's wrong number.
+5. **Weaker models' failures are the expected ones:** Haiku flagged a quoted error message as
+   injection and an account takeover as a complaint, answered Persian in English once; DeepSeek
+   missed high urgency on two deposits overdue by hours.
+
+## Results with prompt v3 on the original 60 (four models)
 
 The test split was already used once for v2, so this is a second look at it, not a fresh held-out
 set; the prompt was tuned on dev only and run once on test per model.
@@ -229,13 +322,19 @@ the known KB errors, and the two rules are deterministic checks (`model_kb_error
 
 1. **One run per configuration.** DeepSeek's two v2 runs differed by 3 violations; model
    rankings this close need ≥3 runs per config or, better, shadow mode on real tickets.
-2. **n is small.** 60 synthetic tickets bound the error rate loosely (0/50 violations → upper
-   bound ~7%). Shadow mode on real tickets is the real eval (Phase 2).
+2. **n is small.** 100 synthetic tickets give ±6 points on accuracy (±3 needs ~400) and bound the
+   violation rate loosely (0/82 → upper bound ~4.5%; "below 1%" needs ~300 hard-rule tickets with
+   zero violations). Slices of 2–7 tickets are pointers, not measurements. Shadow mode on real
+   tickets is the real eval (Phase 2); hard-rule tickets are the cheapest to grow, since code
+   checks them without a judge.
 3. **Non-numeric invented facts** are caught only by the judge offline; in production that is the
    agent's review. Candidate: a cheap claim-checker pass for drafts that mention UI locations or
    procedures not in cited sections.
 4. The production backend (Anthropic SDK, cached) was not run live here; Claude token counts come
    from the proxy (which forces the tool call with an extra instruction) and caching is modelled.
    DeepSeek reports real cache hits, which the measured cost uses.
-5. **The test split has now been seen twice** (v2 and v3). A fresh labelled set is needed before
-   the next prompt version is compared.
+5. **The old test split has now been seen three times.** The 18 v2 test tickets are fresh; the
+   next prompt version should be judged on them first.
+6. **The keyword net costs more than it catches** on this set (see Eval set v2). Three benign
+   phrases are now excluded (ADR-022); turning net-only hits into a warning is a compliance
+   decision, so it is proposed, not done.

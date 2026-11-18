@@ -52,3 +52,28 @@ def test_violation_counted_only_for_judged_drafts() -> None:
     assert judged.checks["no_violation"] is False
     unjudged = score_case(case(), result(Queue.COMPLAINTS, RouteAction.ESCALATE, None), None)
     assert "no_violation" not in unjudged.checks
+
+
+def test_correct_outcome_needs_every_business_check() -> None:
+    right = score_case(case(), result(Queue.COMPLAINTS, RouteAction.ESCALATE), None)
+    # urgency was labelled high and the model said normal: the ticket still lands right,
+    # but a high-urgency miss is a business failure
+    assert right.checks["correct_outcome"] is False
+    ok = score_case(case(urgency="normal"), result(Queue.COMPLAINTS, RouteAction.ESCALATE), None)
+    assert ok.checks["correct_outcome"] is True
+    wrong_queue = score_case(case(urgency="normal"), result(Queue.GENERAL, RouteAction.ESCALATE),
+                             None)
+    assert wrong_queue.checks["correct_outcome"] is False
+
+
+def test_slices_group_by_tag_and_derived_labels() -> None:
+    from copilot.eval.metrics import by_slice
+
+    tagged = case(urgency="normal", language="ar", tags=["lookalike"], added="v2")
+    plain = case(id="c2", urgency="normal")
+    scores = [score_case(tagged, result(Queue.COMPLAINTS, RouteAction.ESCALATE), None),
+              score_case(plain, result(Queue.GENERAL, RouteAction.ESCALATE), None)]
+    slices = by_slice(scores)
+    assert str(slices["all"]).startswith("1/2")
+    assert slices["lookalike"].n == slices["non_english"].n == slices["set_v2"].n == 1
+    assert list(slices)[0] == "all"

@@ -76,8 +76,7 @@ def write_report(out_dir: Path, split: str, summary: dict[str, Any],
     return path
 
 
-def rescore(cases_files: list[Path], labels: dict[str, EvalCase], prices: dict[str, float],
-            prefix_share: float) -> dict[str, Any]:
+def rescore(cases_files: list[Path], labels: dict[str, EvalCase]) -> list[CaseScore]:
     """Re-score saved results against the current labels (e.g. dev + test combined).
 
     Lets label corrections apply to every stored run without calling a model again.
@@ -91,4 +90,4 @@ def rescore(cases_files: list[Path], labels: dict[str, EvalCase], prices: dict[s
             verdict = Verdict.model_validate(row["verdict"]) if row["verdict"] else None
             result = CopilotResult.model_validate(row["result"])
             scores.append(score_case(labels[row["id"]], result, verdict))
-    return summarize(scores, prices, prefix_share)
+    return scores
