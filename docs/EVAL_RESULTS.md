@@ -2,7 +2,7 @@
 
 **Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** On the 100-ticket set it handles
 96/100 tickets correctly with **0 hard-rule violations** — the only model at zero under every prompt
-version, both eval sets and every run — at ≈ $0.006 per ticket with caching and 3.7 s median
+version, both eval sets and every run — at ≈ $0.006 per ticket fully cached ($0.0084 at the business case's 80% cache hits) and 3.7 s median
 latency. Opus 5.5 handled 99/100 on the latest run at 2.2× the cost and 1.5× the latency; the gap is
 3 tickets, not significant on paired tickets (McNemar p = 0.25), and the run before it had Opus at
 94 with 2 violations. Worth re-checking on real tickets in shadow mode, not a reason to switch now.
@@ -24,7 +24,7 @@ Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
   disguised, mixed with a real question, non-English), complaints 5, KYC/AML outcomes 5,
   out-of-KB 5, prompt injection 4; 13 non-English (ar, es, ru, id, pt, fr, tr); every KB gap
   (G1–G9) has at least one case.
-- **Split:** dev 40 / test 20, stratified. The prompt was iterated **only on dev, only with
+- **Split:** set v1 dev 40 / test 20, stratified; with set v2 the 100 split dev 62 / test 38. The prompt was iterated **only on dev, only with
   Sonnet**; test was run once per model after the prompt was frozen.
 - **Deterministic metrics** from labels (category, language, urgency, queue, action, abstain,
   required citation). Every rate has a Wilson 95% interval — at n=20 a 100% can be 84%.

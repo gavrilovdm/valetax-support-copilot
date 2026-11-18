@@ -17,9 +17,9 @@ Why the threshold: monthly LLM cost on Sonnet 5.5 (80% cache hits, measured toke
 
 | KB size → | 2K tokens (today) | 50K tokens | 300K tokens |
 |---|---|---|---|
-| 10k tickets | $86 | $364 | $1,814 |
-| 50k tickets | $429 | $1,821 | $9,071 |
-| 100k tickets | $858 | $3,642 | $18,142 |
+| 10k tickets | $84 | $362 | $1,812 |
+| 50k tickets | $420 | $1,812 | $9,062 |
+| 100k tickets | $840 | $3,624 | $18,124 |
 
 Full context stays cheap up to tens of thousands of tokens thanks to caching, but at hundreds of
 thousands it costs real money and long contexts dilute attention ("lost in the middle"). With
