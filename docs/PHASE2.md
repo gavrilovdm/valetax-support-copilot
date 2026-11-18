@@ -46,14 +46,20 @@ so a re-index or an embedding-model change cannot silently lower answer quality.
 ## 3. Integration and runtime
 
 ```
-helpdesk webhook ──► queue (SQS / Redis) ──► worker(s) ──► internal note + tags + queue in helpdesk
-                                               │
-                                               └──► audit log (append-only) ──► metrics
+helpdesk webhook ──► jobs table ──► worker(s) ──► internal note + tags + queue in helpdesk
+                     (Postgres)          │
+                                         └──► audit records (same Postgres, append-only) ──► metrics
 ```
 
-- Idempotent by ticket id + KB version + prompt version: a redelivered webhook does not create a
-  second draft. A failed LLM call leaves the ticket untouched in its normal queue (already the
-  behaviour: escalate, never drop).
+- **A table, not a queue service.** At 14 tickets/hour today and ~140 at 100k/month, SQS or Redis
+  would be one more system to run, secure and monitor for no gain. A `jobs` row per ticket with
+  workers taking work by `SELECT … FOR UPDATE SKIP LOCKED` gives the same guarantees — at-least-once
+  processing, retries with a counter, several workers in parallel — and lives in the database that
+  already holds the audit records. Trigger to add a queue service: thousands of tickets a minute,
+  or several consumers of the same events.
+- Idempotent by a unique key on ticket id + KB version + prompt version: a redelivered webhook
+  inserts nothing, so no second draft. A failed LLM call leaves the ticket untouched in its normal
+  queue (already the behaviour: escalate, never drop).
 - Drafts are **internal notes**, never customer-visible, until the assist-mode go/no-go.
 - Rate limits and provider outages: SDK retries with backoff, server-side refusal fallback; if the
   provider is down the helpdesk simply works as it does today.

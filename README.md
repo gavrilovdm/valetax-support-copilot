@@ -68,7 +68,7 @@ behaviour required for each, and every gap has eval cases.
 
 ```bash
 uv sync
-uv run pytest                      # 319 tests, no network, no keys
+uv run pytest                      # 320 tests, no network, no keys
 cp .env.example .env               # then set ANTHROPIC_API_KEY (or the proxy settings)
 uv run copilot triage "What is the minimum deposit? Can I pay in EUR?"
 uv run copilot run data/samples/tickets.jsonl -o runs/out.jsonl
@@ -83,7 +83,7 @@ uv run copilot serve               # demo page on http://127.0.0.1:8000 (COPILOT
 **Web demo:** the same pipeline behind a password on Vercel: paste a ticket, see the route,
 classification, flags, the draft with its sources and what the validator removed. The password is
 shared on request; the page calls the LLM through the author's machine, so it is up only while
-that machine is ([ADR-023](docs/decisions/ADR-023-web-demo-behind-a-password.md)).
+that machine is. It keeps no audit log; the CLI does ([ADR-023](docs/decisions/ADR-023-web-demo-behind-a-password.md)).
 
 `COPILOT_LLM_BACKEND=anthropic` (default) uses the official SDK: structured outputs, prompt
 caching of the rules+KB prefix, effort `low`, server-side refusal fallback.
