@@ -1,45 +1,43 @@
 from typing import Any
 
-from copilot.business_case import DraftMix, break_even_accept, evaluate, minutes_saved
+from copilot.business_case import _cheaper_provider_note, evaluate, render, shadow_cost
 
 CFG: dict[str, Any] = {
-    "volume": {"tickets_per_month": 1000, "share_in_kb_scope": 0.5},
-    "agents": {"cost_per_hour_usd": 12, "aht_minutes_baseline": 6.0, "triage_minutes_saved": 0.0,
-               "aht_minutes_draft_accepted": 2.0, "aht_minutes_draft_edited": 4.0,
-               "minutes_overhead_draft_discarded": 0.5},
-    "drafts": {"default": {"accepted": 1.0, "edited": 0.0, "discarded": 0.0}},
-    "llm": {"cache_hit_rate": 1.0},
-    "running_costs_usd_per_month": {"infra": 100},
+    "volumes": [1000, 10000],
+    "llm": {"cache_hit_rate": 0.8},
+    "rollout": {"shadow_weeks": 2},
+    "configs": ["claude-sonnet-5-5", "deepseek-flash"],
 }
 SUMMARY = {"cost_per_ticket_cached": 0.01, "cost_per_ticket_uncached": 0.02,
            "hard_rule_violations": 0, "drafts_judged": 10, "queue_accuracy": "10/10 (100%)",
            "high_urgency_recall": "2/2 (100%)"}
+CHEAP = {**SUMMARY, "cost_per_ticket_cached": 0.001, "cost_per_ticket_uncached": 0.001}
 
 
-def test_minutes_saved_by_hand() -> None:
-    # 500 drafted tickets × 4 minutes saved each
-    assert minutes_saved(CFG, DraftMix(1.0, 0.0, 0.0)) == 2000
-
-
-def test_net_value_by_hand() -> None:
+def test_cost_per_ticket_blends_cache_hits_by_hand() -> None:
     o = evaluate(CFG, "any", SUMMARY)
-    # 2000 min = 33.33 h × $12 = $400; LLM 1000 × $0.01 = $10; infra $100
-    assert round(o.net_usd, 2) == round(400 - 10 - 100, 2)
+    # 0.8 × $0.01 + 0.2 × $0.02 = $0.012 per ticket → $12 at 1,000 tickets
+    assert round(o.usd_per_ticket, 6) == 0.012
+    assert round(o.monthly(1000), 2) == 12
 
 
-def test_break_even_makes_net_zero() -> None:
-    be = break_even_accept(CFG, "any", SUMMARY)
-    assert be is not None
-    cfg = {**CFG, "drafts": {"default": {"accepted": be, "edited": 0.0, "discarded": 1 - be}}}
-    assert abs(evaluate(cfg, "any", SUMMARY).net_usd) < 0.5
+def test_shadow_mode_costs_the_tokens_of_its_weeks() -> None:
+    o = evaluate(CFG, "any", SUMMARY)
+    # $12/month × 2 weeks / (52/12 weeks per month)
+    assert round(shadow_cost(o, 1000, 2), 2) == round(12 * 2 * 12 / 52, 2)
 
 
-def test_cheaper_provider_note_states_the_saving_in_agent_hours() -> None:
-    from copilot.business_case import _cheaper_provider_note
-
+def test_cheaper_provider_note_states_the_monthly_saving() -> None:
     sonnet = evaluate(CFG, "claude-sonnet-5-5", SUMMARY)
-    cheap = evaluate(CFG, "deepseek-flash", {**SUMMARY, "cost_per_ticket_cached": 0.001})
-    note = _cheaper_provider_note([sonnet, cheap], sonnet, CFG)[0]
-    # 1000 tickets × ($0.01 − $0.001) = $9 = 0.75 h at $12/h
-    assert "saving of $9/month" in note and "about 1 agent-hours" in note
-    assert _cheaper_provider_note([sonnet], sonnet, CFG) == []
+    cheap = evaluate(CFG, "deepseek-flash", CHEAP)
+    note = _cheaper_provider_note([sonnet, cheap], sonnet, 1000)[0]
+    # 1000 tickets × ($0.012 − $0.001) = $11
+    assert "saving of $11/month" in note
+    assert _cheaper_provider_note([sonnet], sonnet, 1000) == []
+
+
+def test_page_shows_no_operator_savings() -> None:
+    page = render(CFG, {"claude-sonnet-5-5": SUMMARY, "deepseek-flash": CHEAP})
+    assert "$/month @ 10k" in page and "$120" in page
+    for word in ("net value", "payback", "agent-hours", "break-even"):
+        assert word not in page.lower()

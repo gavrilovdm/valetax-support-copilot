@@ -63,7 +63,7 @@ helpdesk webhook ──► queue (SQS / Redis) ──► worker(s) ──► int
 ## 4. Feedback loop and quality monitoring
 
 - For every draft: was it sent as-is, edited (edit distance) or discarded; did the agent change
-  the queue? These are the business-case inputs, now measured.
+  the queue? These, with Valetax's operator cost, are the inputs for a savings estimate.
 - Weekly: sample 50 drafts across languages, run the judge + gap-specific assertions, and have a
   senior agent review 10. Alert if hard-rule violations > 0, or the accept rate drops a few points
   week on week.

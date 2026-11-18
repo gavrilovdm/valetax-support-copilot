@@ -14,7 +14,7 @@ itself. Built as a take-home for Valetax, with an eval harness and a one-page bu
 | Complaint / KYC tickets sent to a human | **10 / 10** (every model) |
 | Queue accuracy · high-urgency recall | 59/60 · 8/8 |
 | Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.2 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
-| Business case at 10k tickets/month | **≈ $2.3k/month net, payback ≈ 2.6 months** |
+| Running cost at 10k tickets/month | **≈ $80/month in tokens (Sonnet 5.5)**; operator savings not estimated |
 
 Details: [eval results](docs/EVAL_RESULTS.md) · [business case](docs/BUSINESS_CASE.md) ·
 [Phase 2](docs/PHASE2.md) · [decisions (ADRs)](docs/decisions/README.md) · [KB gaps](docs/KB_GAPS.md) ·

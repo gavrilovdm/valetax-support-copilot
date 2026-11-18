@@ -267,7 +267,7 @@ def cost_matrix(
         profiles[m] = usage_profile(load_calls(files, labels))
         if (reports / f"tokens-{m}.json").exists():
             probes[m] = json.loads((reports / f"tokens-{m}.json").read_text())
-    md = render_matrix(profiles, probes, prices, [10_000, 50_000, 100_000],
+    md = render_matrix(profiles, probes, prices, cfg["volumes"],
                        cfg["llm"]["cache_hit_rate"], prompt_version)
     (ROOT / "docs" / "COST_MATRIX.md").write_text(md, encoding="utf-8")
     console.print(md)

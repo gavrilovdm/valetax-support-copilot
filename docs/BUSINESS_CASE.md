@@ -1,45 +1,29 @@
 # Business case — one page
 
-**Question:** is the co-pilot worth running at ~10,000 tickets/month, and with which configuration?
+**Question:** what does the co-pilot cost to run at ~10,000 tickets/month, and on which model?
 
-**Answer: yes — run it on Claude Sonnet 5.5** (prompt `triage_v3`, cached prefix). Expected net value ≈ **$2,328/month** (≈346 agent-hours saved); build cost pays back in ≈2.6 months. It is the only model with zero hard-rule violations under both prompt versions; Opus costs twice as much for no measurable gain. Haiku comes close on prompt v3, but had violations under v2 and writes less complete drafts — and the token saving is smaller than the cost of one bad answer. Start in shadow mode to replace the assumptions below with measured numbers.
+**Answer: Claude Sonnet 5.5** (prompt `triage_v3`, cached prefix), **≈ $80/month** in tokens at 10,000 tickets ($0.0080 per ticket). It is the only model with zero hard-rule violations under both prompt versions; Opus costs twice as much for no measurable gain. Haiku comes close on prompt v3, but had violations under v2 and writes less complete drafts.
 
-DeepSeek Flash (deepseek-flash) costs $7 instead of $80 in tokens: a saving of $73/month, about 7 agent-hours. Against that: a hard-rule violation in the eval where Sonnet has none, larger run-to-run variance, and customer tickets sent to a new processor in another jurisdiction (a compliance review, not a code change). Not worth it at this volume; worth re-testing if volume grows 10× (docs/COST_MATRIX.md).
+DeepSeek Flash (deepseek-flash) costs $7 instead of $80 a month in tokens: a saving of $73/month. Against that: a hard-rule violation in the eval where Sonnet has none, larger run-to-run variance, and customer tickets sent to a new processor in another jurisdiction (a compliance review, not a code change). Not worth it at this volume; worth re-testing if volume grows 10×.
 
-## Configurations (eval: 60 tickets; money: per month)
+## Running cost by model and volume (eval: 60 tickets)
 
-| | Hard-rule violations | Queue acc. | High-urgency recall | LLM cost | Agent time saved | Net value | Break-even accept rate |
+| | Hard-rule violations | Queue acc. | High-urgency recall | $/ticket | $/month @ 10k | $/month @ 50k | $/month @ 100k |
 |---|---|---|---|---|---|---|---|
-| claude-opus-5-5 | 1/50 | 60/60 | 8/8 | $177 | $3,458 (346 h) | **$2,231** | 20% |
-| claude-sonnet-5-5 | 0/49 | 59/60 | 8/8 | $80 | $3,458 (346 h) | **$2,328** | 18% |
-| claude-haiku-5-5 | 0/51 | 59/60 | 8/8 | $4 | $3,008 (301 h) | **$1,954** | 16% |
-| deepseek-flash | 1/50 | 60/60 | 8/8 | $7 | $3,233 (323 h) | **$2,176** | 16% |
+| claude-opus-5-5 | 1/50 | 60/60 | 8/8 | $0.0177 | $177 | $887 | $1,774 |
+| claude-sonnet-5-5 | 0/49 | 59/60 | 8/8 | $0.0080 | $80 | $402 | $804 |
+| claude-haiku-5-5 | 0/51 | 59/60 | 8/8 | $0.0004 | $4 | $20 | $40 |
+| deepseek-flash | 1/50 | 60/60 | 8/8 | $0.0007 | $7 | $36 | $72 |
 
-Token cost is at most 5% of the value for every model: **the decision is about quality and risk, not price.** The fixed running cost (infrastructure + ~0.2 FTE upkeep, $1,050) dominates the cost side — and stays flat as volume grows, so net value rises roughly linearly with ticket volume (Phase 2).
+Cost grows linearly with volume: there is no per-seat or fixed licence part. Token counts and their spread per language are in [COST_MATRIX.md](COST_MATRIX.md).
 
-Break-even accept rate: the share of drafts that must be sendable as-is (all others discarded) for the configuration to pay for itself.
+## Transition: 2 weeks of shadow mode
 
-## Sensitivity (Sonnet 5.5, net value per month)
+Drafts are generated for every real ticket but not shown; operators work as usual ([ADR-016](decisions/ADR-016-shadow-mode-rollout.md)). The system costs the full token price with no operator time saved yet: ≈ **$37** for Sonnet at 10,000 tickets/month. Go to assist mode if hard-rule violations stay at 0 on reviewed samples.
 
-| Agent cost/hour → | −50% | as assumed | +50% |
-|---|---|---|---|
-| time saved −50% | −$266 | $599 | $1,463 |
-| as assumed | $599 | $2,328 | $4,057 |
-| time saved +50% | $1,463 | $4,057 | $6,651 |
+## What is in the number, and what is not
 
-Only the corner where both assumptions are halved turns negative — then the fixed upkeep outweighs the savings at today's volume. That is the case shadow mode rules in or out before any spend beyond the build.
-
-## Assumptions (replace with Valetax data)
-
-- 10,000 tickets/month (brief); 60% answerable at least partly from the KB.
-- Agent $10/h; 6 min per ticket today; with a draft: 2 min if sent as-is, 4 min if edited; 0.5 min of triage saved on every ticket.
-- Drafts (sent as-is / edited / discarded): default 50%/35%/15%; claude-haiku-5-5 40%/35%/25%; deepseek-flash 45%/35%/20%.
-- LLM: eval token counts × list prices, 80% cache hits.
-- Running: $50 infra + $1000 upkeep; build $6,000 one-off.
-- Not monetised: faster first response, consistent answers across languages, the audit trail, and the regulatory cost of a wrong answer — the reason violations rank first.
-
-## How we will know (shadow mode, 2 weeks)
-
-Drafts are generated for real tickets but not shown; agents answer as usual. Compare: draft vs sent reply (edit distance → accepted/edited/discarded), routing vs agents' routing, AHT before/after on a pilot group. Go live in assist mode if hard-rule violations stay at 0 on reviewed samples and the accept+edit share clears the break-even rate above.
+- In: eval token counts × list prices (`configs/prices.yaml`), 80% cache hits on the rules + KB prefix, retries included.
+- Not in: hosting (one small container), engineering upkeep, and operator savings. Savings need Valetax's operator cost per hour and handling time per ticket, then the shadow-mode measurements (accepted / edited / discarded drafts, handling time before and after).
 
 _Generated by `uv run copilot business-case` from `business_case.yaml` and `reports/`._

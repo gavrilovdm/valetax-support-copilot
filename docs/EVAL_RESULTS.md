@@ -4,8 +4,8 @@
 hard-rule violations under both prompt versions (v2: 0/50, v3: 0/49 judged drafts), with 100%
 complaint/KYC routing and 59–60/60 queue accuracy. Opus 5.5 is as good at twice the cost. Haiku 5.5
 and DeepSeek Flash are 10–20× cheaper in tokens and come close under v3, but each let errors through
-on another run, and at 10k tickets/month the whole token bill of Sonnet is ~$80 — less than the
-cost of one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
+on another run, and at 10k tickets/month the whole token bill of Sonnet is ~$80 — a price difference too small to
+outweigh one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
 [token and cost matrix](COST_MATRIX.md)).
 
 Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and

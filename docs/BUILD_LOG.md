@@ -105,4 +105,6 @@ what went wrong. Each step is a branch and a PR with CI.
   validator (ADR-019), and the judge knows the known KB errors.
 - **Honest variance:** two identical DeepSeek runs differed by 3 violations. The docs now say one
   run per config cannot rank models this close.
-
+- **Business case narrowed to running cost** (ADR-020). The savings estimate stood on an assumed
+  operator cost ($10/h), assumed handling times and no transition period. The page now shows only
+  measured tokens × list prices × volume, plus the token cost of the shadow-mode weeks.
