@@ -131,3 +131,23 @@ what went wrong. Each step is a branch and a PR with CI.
 - **Re-run:** Sonnet 94 → 96/100, still 0 violations. The re-run also showed flips beyond the three
   tickets (Sonnet 3, Opus 2, Haiku 7, DeepSeek 12): at n=100 a 2–3 ticket gap is noise, which the
   paired McNemar comparison in EVAL_RESULTS now states.
+
+## 10. Web demo (PR #10)
+
+- **Why:** reviewers can try the co-pilot without installing anything. Plain WSGI on Vercel, the
+  LLM through the local proxy over ngrok, a password gate with a signed HttpOnly cookie (ADR-023).
+- **Found:** the first login on Vercel returned 401 with the right password. The rewrite handed the
+  function the path `/api/index`, so every route fell through; the original route now travels in
+  `?route=` and is restored before the app sees it.
+
+## 11. Re-reading the brief (PRs #11–#14)
+
+- **Gaps against the brief's wording:** citations named sections, not "the pages used" (now each
+  result carries the page URLs); the business case gave a cost but not "is it worth running" (now a
+  verdict and a break-even in operator seconds per ticket, ADR-020 amended).
+- **Production review:** the audit log stored the draft after PII restore, so an echoed email was
+  written in full; it is now masked again before storage. Phase 2 swaps a queue service for a
+  Postgres jobs table: at 14–140 tickets/hour a queue is one more system for no gain.
+- **Shorter business case:** the page keeps the verdict and the two tables it rests on; the detail
+  lives in EVAL_RESULTS and COST_MATRIX.
+

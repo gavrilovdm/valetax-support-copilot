@@ -1,4 +1,4 @@
-# ADR-020: The business case shows running cost only
+# ADR-020: The business case shows running cost and a break-even, not estimated savings
 
 Status: accepted · 2026-11-18 · amended 2026-11-19 (break-even and verdict, see below)
 

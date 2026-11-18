@@ -22,4 +22,5 @@ Where a ticket goes must be explainable to compliance and stable across model ve
 
 ## Evidence
 
-tests/test_route.py; eval queue accuracy 60/60 (Sonnet, Opus).
+tests/test_route.py; eval queue accuracy 60/60 on set v1 (Sonnet, Opus), 96/100 and 99/100 on all
+100 tickets with prompt v3 (EVAL_RESULTS.md).

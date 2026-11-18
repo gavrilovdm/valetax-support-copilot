@@ -36,7 +36,8 @@ is an eval case.
   growth and quality drift, not requests per second.**
 - Claude prices per 1M tokens (input / output / cache read): Haiku 5.5 $0.10 / $0.50 / $0.01,
   Sonnet 5.5 $2 / $10 / $0.10, Opus 5.5 $4 / $20 / $0.20. Batch API −50% with up to 24 h latency.
-- Rough cost: Opus ≈ $140/month, Sonnet ≈ $70, Haiku ≈ $6 — against ~1,000 agent-hours/month of
+- Rough cost before building (measured later: Opus $182, Sonnet $84, Haiku $4 — see
+  [`BUSINESS_CASE.md`](BUSINESS_CASE.md)): Opus ≈ $140/month, Sonnet ≈ $70, Haiku ≈ $6 — against ~1,000 agent-hours/month of
   handling time. **Tokens are under 2% of the effect: choose the configuration by quality, not price.**
 
 ## Decisions

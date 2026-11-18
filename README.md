@@ -13,7 +13,7 @@ itself. Built as a take-home for Valetax, with an eval harness and a one-page bu
 | Correct outcome (100 tickets: right queue, answered or held back, no rule broken) | **96 / 100** · Opus 99 · Haiku 92 · DeepSeek Flash 90 |
 | Hard-rule violations (judged drafts) | **0 / 82** · Opus 0/82 · Haiku 3/83 · DeepSeek Flash 3/83 |
 | Complaint / KYC tickets sent to a human | **16 / 16** (every model) |
-| Cost per ticket (cached) · latency p50 | ≈ $0.006 · 3.7 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
+| Cost per ticket · latency p50 | ≈ $0.006 fully cached, $0.0084 at 80% cache hits (the business-case figure) · 3.7 s ([all models, tokens and $/month](docs/COST_MATRIX.md)) |
 | Running cost at 10k tickets/month | **≈ $84/month in tokens (Sonnet 5.5)**; operator savings not estimated |
 | Worth running? | **Yes**, through shadow mode: tokens pay off at ~3 s of operator time saved per ticket ($10/h), ~39 s with $1k/month upkeep ([business case](docs/BUSINESS_CASE.md)) |
 

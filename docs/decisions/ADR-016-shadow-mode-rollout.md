@@ -4,7 +4,7 @@ Status: accepted · 2026-11-17
 
 ## Context
 
-Operator savings depend on numbers (handling time, accept rate, operator cost) that only Valetax and real tickets can give, so the business case shows running cost only (ADR-020).
+Operator savings depend on numbers (handling time, accept rate, operator cost) that only Valetax and real tickets can give, so the business case shows running cost and a break-even, not an estimate of savings (ADR-020).
 
 ## Options
 
