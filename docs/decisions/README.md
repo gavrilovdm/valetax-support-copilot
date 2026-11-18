@@ -24,3 +24,4 @@ One file per decision: context, options, decision, consequences, evidence.
 | [018](ADR-018-token-accounting-and-deepseek.md) | Measure tokens per model; add DeepSeek as a non-Claude comparison |
 | [019](ADR-019-known-kb-errors-in-code.md) | Known errors of the source pages are enforced in code, not only in the prompt |
 | [020](ADR-020-business-case-running-cost-only.md) | The business case shows running cost only, no estimated operator savings |
+| [021](ADR-021-eval-set-v2-and-business-scorecard.md) | 40 harder tickets (look-alikes, more languages, planted numbers) and a correct / fast / cheap scorecard |

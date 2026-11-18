@@ -108,3 +108,16 @@ what went wrong. Each step is a branch and a PR with CI.
 - **Business case narrowed to running cost** (ADR-020). The savings estimate stood on an assumed
   operator cost ($10/h), assumed handling times and no transition period. The page now shows only
   measured tokens × list prices × volume, plus the token cost of the shadow-mode weeks.
+
+## 8. Eval set v2 and a business scorecard (PR #9)
+
+- **Why:** on 60 tickets every model sat at the safety ceiling, so the eval could not rank changes.
+  Reading other candidates' public solutions of the same brief showed what our set lacked:
+  look-alikes where a rule must not fire, transliterated and code-switched text, customer-planted
+  numbers, several questions in one ticket.
+- **How:** 40 new tickets, each with a `why_hard` written before any model saw it, following
+  Anthropic's eval-design guidance (mirror production, hard for a stated reason, no picking by
+  today's failures, unambiguous labels, held-out part). A new test checks all 100 labels against
+  the routing table and the KB; it passed on the first run, old labels included.
+- **Scorecard:** `correct_outcome`, latency, USD per ticket and USD per correctly handled ticket,
+  then the same correctness per slice (ADR-021).

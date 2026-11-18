@@ -6,10 +6,10 @@ Same 60 eval tickets, prompt `triage_v3`, every model. Prices: `configs/prices.y
 
 | model | n | input (mean) | input, first attempt | output (mean) | output p95 | retry rate | input vs claude-sonnet-5-5 | output vs claude-sonnet-5-5 |
 |---|---|---|---|---|---|---|---|---|
-| claude-sonnet-5-5 | 60 | 5,634 | 5,634 | 518 | 920 | 0% | 1.00x | 1.00x |
-| claude-opus-5-5 | 60 | 5,634 | 5,634 | 601 | 979 | 0% | 1.00x | 1.16x |
-| claude-haiku-5-5 | 60 | 5,745 | 5,745 | 472 | 629 | 0% | 1.02x | 0.91x |
-| deepseek-flash | 60 | 4,014 | 3,883 | 366 | 513 | 3% | 0.69x | 0.71x |
+| claude-sonnet-5-5 | 100 | 5,638 | 5,638 | 558 | 1016 | 0% | 1.00x | 1.00x |
+| claude-opus-5-5 | 100 | 5,638 | 5,638 | 621 | 949 | 0% | 1.00x | 1.11x |
+| claude-haiku-5-5 | 100 | 5,749 | 5,749 | 489 | 646 | 0% | 1.02x | 0.88x |
+| deepseek-flash | 97 | 4,129 | 3,886 | 392 | 532 | 4% | 0.69x | 0.70x |
 
 ## 2. Tokenizer probe: same text, `max_tokens=1`, no tools
 
@@ -26,7 +26,7 @@ Tokens per 100 characters of ticket text; `prefix` is the rules + KB block (iden
 
 | model | $/ticket, no cache | $/ticket, cached | $/month @ 10k | $/month @ 50k | $/month @ 100k |
 |---|---|---|---|---|---|
-| claude-sonnet-5-5 | 0.01645 | 0.00801 | 80 | 401 | 801 |
-| claude-opus-5-5 | 0.03456 | 0.01768 | 177 | 884 | 1,768 |
-| claude-haiku-5-5 | 0.00081 | 0.00040 | 4 | 20 | 40 |
-| deepseek-flash | 0.00164 | 0.00074 | 7 | 37 | 74 |
+| claude-sonnet-5-5 | 0.01686 | 0.00841 | 84 | 421 | 841 |
+| claude-opus-5-5 | 0.03497 | 0.01809 | 181 | 904 | 1,809 |
+| claude-haiku-5-5 | 0.00082 | 0.00041 | 4 | 21 | 41 |
+| deepseek-flash | 0.00171 | 0.00081 | 8 | 40 | 81 |

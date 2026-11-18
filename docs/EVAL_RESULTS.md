@@ -1,11 +1,12 @@
 # Eval results
 
-**Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** It is the only model with zero
-hard-rule violations under both prompt versions (v2: 0/50, v3: 0/49 judged drafts), with 100%
-complaint/KYC routing and 59–60/60 queue accuracy. Opus 5.5 is as good at twice the cost. Haiku 5.5
-and DeepSeek Flash are 10–20× cheaper in tokens and come close under v3, but each let errors through
-on another run, and at 10k tickets/month the whole token bill of Sonnet is ~$80 — a price difference too small to
-outweigh one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
+**Recommendation: Claude Sonnet 5.5 with prompt `triage_v3`.** On the 100-ticket set it handles
+94/100 tickets correctly with **0 hard-rule violations** — the only model at zero under every prompt
+version and both eval sets — at ≈ $0.006 per ticket with caching and 4.6 s median latency. Opus 5.5
+is equally correct (94/100) with 2 violations at twice the cost. Haiku 5.5 and DeepSeek Flash are
+twice as fast and 10–20× cheaper, but handle 89 and 87 tickets correctly and break hard rules 2 and
+4 times. At 10k tickets/month the whole token bill of Sonnet is ~$84 — a price difference too small
+to outweigh one wrong answer to a broker's customer ([business case](BUSINESS_CASE.md),
 [token and cost matrix](COST_MATRIX.md)).
 
 Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
@@ -14,7 +15,8 @@ Raw numbers: [`reports/summary.md`](../reports/summary.md) (prompt v3) and
 
 ## Method
 
-- **Dataset:** 60 hand-labelled tickets ([`data/eval/tickets.jsonl`](../data/eval/tickets.jsonl)):
+- **Dataset:** 100 hand-labelled tickets: the 60 below (set v1) plus 40 harder ones (set v2, see
+  [Eval set v2](#eval-set-v2-100-tickets)). Set v1: ([`data/eval/tickets.jsonl`](../data/eval/tickets.jsonl)):
   deposits 10, withdrawals 10, account opening 8, verification 4, trading-advice traps 9 (direct,
   disguised, mixed with a real question, non-English), complaints 5, KYC/AML outcomes 5,
   out-of-KB 5, prompt injection 4; 13 non-English (ar, es, ru, id, pt, fr, tr); every KB gap
@@ -89,7 +91,81 @@ rule written in the prompt/spec, not the model's answer:
   test "failure" where the model cited the better section).
 Every corrected case carries a `label_fix` field.
 
-## Results with prompt v3 (four models)
+## Eval set v2 (100 tickets)
+
+Why: on the 60 tickets every model sat at the safety ceiling, so the eval could no longer tell a
+better system from a worse one. 40 tickets were added following Anthropic's
+[eval-design guidance](https://claude.dev/blog/automating-eval-design-and-hillclimbing/) (ADR-021):
+
+- **Mirror production:** languages of Valetax's markets the set lacked (ms, vi, ur, hi, fa),
+  Russian and Hindi in Latin letters, Indonesian slang mixed with English, typos, a frustrated
+  multi-day thread, a forwarded email, card and passport numbers.
+- **Hard for a stated reason:** each case has `why_hard`, written before any model ran on it;
+  nothing was picked because a model failed it.
+- **Should-not-fire cases:** 7 look-alikes where a hard rule must *not* fire.
+- **Unambiguous labels:** `tests/test_eval_dataset.py` checks all 100 labels against the routing
+  table and the KB. 18 of the 40 are held out in `test`; the prompt was not changed.
+
+### Business scorecard (all 100, prompt v3, one run per model)
+
+`correct_outcome` = the right queue and action, answered or held back as labelled, high urgency
+caught, no hard-rule violation in the judged draft.
+
+| | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | DeepSeek Flash |
+|---|---|---|---|---|
+| **Correct outcome** | 94/100 | **94/100** | 89/100 | 87/100 |
+| Hard-rule violations (judged drafts) | 2 / 82 | **0 / 79** | 2 / 81 | 4 / 83 |
+| Latency p50 / p95 | 5.0 s / 8.4 s | 4.6 s / 11.1 s | 2.3 s / 3.0 s | 2.3 s / 3.3 s |
+| $ per ticket, cached (production) | $0.0139 | $0.0063 | $0.0003 | $0.0005 |
+| $ per correctly handled ticket, cached | $0.0148 | $0.0067 | $0.0004 | $0.0006 |
+| Held-out test (n=38): correct · violations | 35/38 · 1 | **36/38 · 0** | 32/38 · 2 | 31/38 · 3 |
+
+Latency is measured through the development proxy, which adds overhead; the ranking holds, the
+absolute numbers are pessimistic. Claude tokens through the proxy are uncached; the cached cost
+applies the measured prefix share to Anthropic cache-read prices (DeepSeek reports real cache hits).
+
+### Correct outcome by slice (all 100)
+
+| Slice | n | Opus | Sonnet | Haiku | DeepSeek |
+|---|---|---|---|---|---|
+| Set v1 (the original 60) | 60 | 59 | 59 | 59 | 55 |
+| Set v2 (the new 40) | 40 | 35 | 35 | 30 | 32 |
+| Hard-rule tickets (complaint, KYC, advice, injection) | 32 | 32 | 32 | 31 | 31 |
+| Non-English | 24 | 24 | 23 | 22 | 23 |
+| **Look-alikes (rule must not fire)** | 7 | **3** | **3** | **2** | **3** |
+| Urgency boundaries | 6 | 5 | 6 | 5 | 3 |
+| Out of scope | 5 | 4 | 4 | 3 | 3 |
+| Planted numbers · multi-intent · PII · injection | 4 · 4 · 2 · 2 | all | all | 4 · 3 · 2 · 2 | all |
+
+The set has headroom again: v2 tickets score 10–23 points lower than v1, and the slices show where.
+
+### What the new tickets found
+
+1. **The keyword net only over-escalates.** 4 of the 7 look-alikes fail on *every* model, and in
+   each case the model was right and the net overrode it: "I don't have any complaint" went to the
+   complaints queue, "my friend's account was blocked by his bank" and "what is your AML policy?"
+   to compliance. Over all 397 scored runs the net **never** caught a flag the model missed, and
+   raised 19 flags the model correctly did not. Its recall on its own was already measured as far
+   below the model's. The design choice "a false hit costs a human look" now has a price: about 4%
+   of tickets sent to a specialist with nothing to decide. Candidate change (not made here, it
+   needs the compliance owner's sign-off): when only the net fires, keep the ticket with the agent
+   and show the net's hit as a warning instead of escalating.
+2. **Run-to-run noise.** The original 60 were run a second time with the same prompt. Every
+   Claude model gave the same per-ticket outcome on all 60 (0 flips); DeepSeek changed on 4
+   tickets (59 → 55: two malformed tool calls, two invented claims). One run per Claude config is
+   enough to rank at this n; DeepSeek needs several.
+3. **Partial answers to gap questions.** Sonnet abstained on two tickets where the KB covers part
+   of the question ("withdrawal to Skrill — how long?", "which payment methods, USDT?"). Safe, but
+   the customer gets nothing from the draft; the rule "answer the part you can" is weaker in Sonnet
+   than in Opus.
+4. **Planted numbers, multi-intent, PII, transliteration, injection in Russian and in forwarded
+   email:** handled by every model. The validator's number check did not remove the drafts that
+   corrected a customer's wrong number.
+5. **Weaker models' failures are the expected ones:** Haiku flagged a quoted error message as
+   injection and an account takeover as a complaint, answered Persian in English once; DeepSeek
+   missed high urgency on two deposits overdue by hours.
+
+## Results with prompt v3 on the original 60 (four models)
 
 The test split was already used once for v2, so this is a second look at it, not a fresh held-out
 set; the prompt was tuned on dev only and run once on test per model.
@@ -237,5 +313,7 @@ the known KB errors, and the two rules are deterministic checks (`model_kb_error
 4. The production backend (Anthropic SDK, cached) was not run live here; Claude token counts come
    from the proxy (which forces the tool call with an extra instruction) and caching is modelled.
    DeepSeek reports real cache hits, which the measured cost uses.
-5. **The test split has now been seen twice** (v2 and v3). A fresh labelled set is needed before
-   the next prompt version is compared.
+5. **The old test split has now been seen three times.** The 18 v2 test tickets are fresh; the
+   next prompt version should be judged on them first.
+6. **The keyword net costs more than it catches** on this set (see Eval set v2). Changing it is a
+   compliance decision, so it is proposed, not done.

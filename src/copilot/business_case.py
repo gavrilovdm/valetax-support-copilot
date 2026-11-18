@@ -29,6 +29,7 @@ class Outcome:
     model: str
     usd_per_ticket: float
     violations: str
+    correct: str
     queue: str
     high_urgency: str
 
@@ -50,6 +51,7 @@ def evaluate(cfg: dict[str, Any], model: str, summary: dict[str, Any]) -> Outcom
         model=model,
         usd_per_ticket=llm_cost_per_ticket(summary, cfg["llm"]["cache_hit_rate"]),
         violations=f"{summary['hard_rule_violations']}/{summary['drafts_judged']}",
+        correct=str(summary["correct_outcome"]).split(" (")[0],
         queue=str(summary["queue_accuracy"]).split(" (")[0],
         high_urgency=str(summary["high_urgency_recall"]).split(" (")[0],
     )
@@ -77,20 +79,22 @@ def render(cfg: dict[str, Any], summaries: dict[str, dict[str, Any]]) -> str:
         f"**Answer: Claude Sonnet 5.5** (prompt `{DEFAULT_VERSION}`, cached prefix), "
         f"**≈ ${best.monthly(base):,.0f}/month** in tokens at {base:,} tickets "
         f"(${best.usd_per_ticket:.4f} per ticket). "
-        "It is the only model with zero hard-rule violations under both prompt versions; Opus "
-        "costs twice as much for no measurable gain. Haiku comes close on prompt v3, but had "
-        "violations under v2 and writes less complete drafts.",
+        f"It handles {best.correct} tickets correctly with zero hard-rule violations — the only "
+        "model at zero under every prompt version and eval set; Opus costs twice as much for no "
+        "measurable gain. Haiku and DeepSeek are faster and cheaper but break hard rules and "
+        "handle fewer tickets correctly.",
         "",
         *_cheaper_provider_note(outcomes, best, base),
-        "## Running cost by model and volume (eval: 60 tickets)",
+        f"## Running cost by model and volume (eval: {_n(summaries)} tickets)",
         "",
-        "| | Hard-rule violations | Queue acc. | High-urgency recall | $/ticket | "
+        "| | Correct outcome | Hard-rule violations | Queue acc. | High-urgency recall | "
+        "$/ticket | "
         + " | ".join(f"$/month @ {v // 1000}k" for v in volumes) + " |",
-        "|---|---|---|---|---|" + "---|" * len(volumes),
+        "|---|---|---|---|---|---|" + "---|" * len(volumes),
     ]
     for o in outcomes:
         cells = " | ".join(f"${o.monthly(v):,.0f}" for v in volumes)
-        lines.append(f"| {o.model} | {o.violations} | {o.queue} | {o.high_urgency} | "
+        lines.append(f"| {o.model} | {o.correct} | {o.violations} | {o.queue} | {o.high_urgency} | "
                      f"${o.usd_per_ticket:.4f} | {cells} |")
     lines += [
         "",
@@ -130,12 +134,18 @@ def _cheaper_provider_note(outcomes: list[Outcome], best: Outcome, tickets: int)
     return [
         f"DeepSeek Flash ({other.model}) costs ${other.monthly(tickets):,.0f} instead of "
         f"${best.monthly(tickets):,.0f} a month in tokens: a saving of ${saving:,.0f}/month. "
-        "Against that: a hard-rule violation in the eval where Sonnet has none, larger "
+        f"Against that: {other.violations} judged drafts break a hard rule where Sonnet has "
+        f"{best.violations.split('/')[0]}, {other.correct} tickets handled correctly against "
+        f"{best.correct}, larger "
         "run-to-run variance, and customer tickets sent to a new processor in another "
         "jurisdiction (a compliance review, not a code change). Not worth it at this volume; "
         "worth re-testing if volume grows 10×.",
         "",
     ]
+
+
+def _n(summaries: dict[str, dict[str, Any]]) -> int:
+    return int(next(iter(summaries.values()))["n"])
 
 
 def load_summaries(root: Path, models: list[str]) -> dict[str, dict[str, Any]]:
