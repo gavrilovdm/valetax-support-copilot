@@ -36,6 +36,8 @@ Third option. `copilot.web` is plain WSGI (no framework, no new dependency); Ver
   cap: serverless instances share no memory, and a cap needs shared storage (Upstash Redis, as in
   gavrisalive). Worth adding before the link goes beyond a few reviewers.
 - The demo works only while the author's machine, llm-proxy and the ngrok tunnel are up.
+- The demo writes no audit log: a Vercel function has no persistent disk. Fine for a demo with
+  synthetic tickets; in production the audit record goes to a database (PHASE2.md §3).
 - Unknown paths reach the function and get 401 without a session; only `public/` is static, and
   `.vercelignore` uploads nothing but the code, prompts and KB snapshot (no `.env`, eval data or
   reports).
